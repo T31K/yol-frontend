@@ -241,15 +241,12 @@ export default function TwitchPage() {
         {/* Tips */}
         <div className="bg-purple-200 border-4 border-black shadow-base p-4 rounded-base rotate-[0.5deg] mt-8">
           <p className="font-heading text-sm">
-            💡 <strong>Tip:</strong> You can enter just the channel name (e.g., "ninja") or the full URL (e.g., "twitch.tv/ninja")
+            💡 <strong>{`Tip:`}</strong> {`You can enter just the channel name (e.g., "caedrel") or the full URL (e.g., "twitch.tv/caedrel")`}
           </p>
         </div>
 
         {/* Footer */}
         <footer className="mt-12 text-center">
-          <Link href="/" className="text-purple-600 hover:underline font-heading">
-            ← Back to YouTube Looper
-          </Link>
           <p className="text-sm text-gray-600 font-base mt-2">
             Made with ❤️ for multi-stream viewing
           </p>

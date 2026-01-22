@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { DM_Sans } from 'next/font/google'
 import './globals.css'
+import Script from 'next/script'
 
 const dmSans = DM_Sans({ subsets: ['latin'] })
 
@@ -74,7 +75,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={dmSans.className}>{children}</body>
+      <body className={dmSans.className}>
+        {children}
+        <Script
+          src="https://umami.t31k.cloud/script.js"
+          data-website-id="f30df7aa-6302-4888-9f2a-30337586e310"
+          strategy="afterInteractive"
+        />
+      </body>
     </html>
   )
 }

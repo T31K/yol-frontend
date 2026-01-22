@@ -258,7 +258,7 @@ export default function Home() {
           <div className="inline-block mb-4">
             <Image
               src="/logo.webp"
-              alt="RepeatTube - Loop Any YouTube Video"
+              alt="YouTubeOnLoop - Loop Any YouTube Video"
               width={780}
               height={400}
               className="h-16 md:h-20 w-auto"
@@ -267,7 +267,7 @@ export default function Home() {
           </div>
           <h1 className="text-3xl md:text-4xl font-heading tracking-tight">Play any Youtube video on loop</h1>
           <p className="text-lg md:text-xl font-base mt-2">
-            Paste a YouTube link or just replace youtube.com with <code className="bg-bg/60 px-1.5 py-0.5 rounded border border-gray-400">repeattube.com</code> in any YouTube URL
+            Paste a YouTube link or just replace youtube.com with <code className="bg-bg/60 px-1.5 py-0.5 rounded border border-gray-400">youtubeonloop.com</code> in any YouTube URL
           </p>
         </div>
 

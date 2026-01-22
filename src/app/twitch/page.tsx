@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Play, X, Tv2 } from 'lucide-react'
+import { Play, X, Tv2, LayoutGrid, Triangle } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -12,6 +12,7 @@ export default function TwitchPage() {
   const [activeStream1, setActiveStream1] = useState<string | null>(null)
   const [activeStream2, setActiveStream2] = useState<string | null>(null)
   const [parentDomain, setParentDomain] = useState('localhost')
+  const [viewMode, setViewMode] = useState<'grid' | 'diagonal'>('grid')
 
   // Get the parent domain on client-side
   useEffect(() => {
@@ -115,21 +116,95 @@ export default function TwitchPage() {
               Load Streams
             </Button>
             {hasActiveStreams && (
-              <Button
-                onClick={clearAll}
-                variant="neutral"
-                size="lg"
-              >
-                <X className="w-5 h-5 mr-2" />
-                Clear All
-              </Button>
+              <>
+                <Button
+                  onClick={clearAll}
+                  variant="neutral"
+                  size="lg"
+                >
+                  <X className="w-5 h-5 mr-2" />
+                  Clear All
+                </Button>
+                {activeStream1 && activeStream2 && (
+                  <Button
+                    onClick={() => setViewMode(viewMode === 'grid' ? 'diagonal' : 'grid')}
+                    variant="neutral"
+                    size="lg"
+                    className={viewMode === 'diagonal' ? 'bg-purple-200' : ''}
+                  >
+                    {viewMode === 'grid' ? (
+                      <>
+                        <Triangle className="w-5 h-5 mr-2" />
+                        Diagonal View
+                      </>
+                    ) : (
+                      <>
+                        <LayoutGrid className="w-5 h-5 mr-2" />
+                        Grid View
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>
 
         {/* Streams */}
         {hasActiveStreams ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          viewMode === 'diagonal' && activeStream1 && activeStream2 ? (
+            /* Diagonal Split View */
+            <div className="relative w-full border-4 border-black shadow-base rounded-base overflow-hidden bg-black" style={{ paddingBottom: '56.25%' }}>
+              {/* Stream 1 - Bottom Left Triangle */}
+              <div
+                className="absolute inset-0 overflow-hidden"
+                style={{ clipPath: 'polygon(0 0, 0 100%, 100% 100%)' }}
+              >
+                <iframe
+                  src={`https://player.twitch.tv/?channel=${activeStream1}&parent=${parentDomain}&muted=true&autoplay=true`}
+                  className="absolute top-0 left-0 w-full h-full"
+                  width="100%"
+                  height="100%"
+                  allow="autoplay; fullscreen"
+                  allowFullScreen
+                  frameBorder="0"
+                  scrolling="no"
+                />
+                <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-1 rounded-base font-heading text-sm flex items-center gap-2">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  {activeStream1}
+                </div>
+              </div>
+
+              {/* Stream 2 - Top Right Triangle */}
+              <div
+                className="absolute inset-0 overflow-hidden"
+                style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%)' }}
+              >
+                <iframe
+                  src={`https://player.twitch.tv/?channel=${activeStream2}&parent=${parentDomain}&muted=true&autoplay=true`}
+                  className="absolute top-0 left-0 w-full h-full"
+                  width="100%"
+                  height="100%"
+                  allow="autoplay; fullscreen"
+                  allowFullScreen
+                  frameBorder="0"
+                  scrolling="no"
+                />
+                <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-base font-heading text-sm flex items-center gap-2">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  {activeStream2}
+                </div>
+              </div>
+
+              {/* Diagonal line indicator */}
+              <div className="absolute inset-0 pointer-events-none" style={{
+                background: 'linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(255,255,255,0.3) calc(50% - 1px), rgba(255,255,255,0.3) calc(50% + 1px), transparent calc(50% + 1px))'
+              }} />
+            </div>
+          ) : (
+            /* Normal Grid View */
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Stream 1 */}
             <div className="bg-white border-4 border-black shadow-base rounded-base overflow-hidden">
               {activeStream1 ? (
@@ -202,6 +277,7 @@ export default function TwitchPage() {
               )}
             </div>
           </div>
+          )
         ) : (
           /* Empty State */
           <div className="bg-white border-4 border-black shadow-base p-8 md:p-12 rounded-base text-center">
@@ -257,7 +333,7 @@ export default function TwitchPage() {
         {/* Tips */}
         <div className="bg-purple-200 border-4 border-black shadow-base p-4 rounded-base rotate-[0.5deg] mt-8">
           <p className="font-heading text-sm">
-            💡 <strong>Tip:</strong> Streams start muted for autoplay to work. Click the unmute button on each player to hear audio!
+            💡 <strong>Tip:</strong> Streams start muted for autoplay. With 2 streams loaded, try the <strong>Diagonal View</strong> to watch both at once!
           </p>
         </div>
 

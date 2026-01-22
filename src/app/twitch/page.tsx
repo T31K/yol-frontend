@@ -142,7 +142,7 @@ export default function TwitchPage() {
                   </div>
                   <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                     <iframe
-                      src={`https://player.twitch.tv/?channel=${activeStream1}&parent=youtubeonloop.com&muted=false`}
+                      src={`https://player.twitch.tv/?channel=${activeStream1}&parent=www.youtubeonloop.com&muted=true`}
                       className="absolute top-0 left-0 w-full h-full"
                       allow="autoplay; fullscreen"
                       allowFullScreen

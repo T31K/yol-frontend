@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Play, X, Tv2 } from 'lucide-react'
 import Image from 'next/image'
@@ -11,6 +11,12 @@ export default function TwitchPage() {
   const [stream2, setStream2] = useState('')
   const [activeStream1, setActiveStream1] = useState<string | null>(null)
   const [activeStream2, setActiveStream2] = useState<string | null>(null)
+  const [parentDomain, setParentDomain] = useState('localhost')
+
+  // Get the parent domain on client-side
+  useEffect(() => {
+    setParentDomain(window.location.hostname)
+  }, [])
 
   const extractChannelName = (input: string): string => {
     // Handle full URLs like twitch.tv/channel or https://www.twitch.tv/channel
@@ -140,12 +146,16 @@ export default function TwitchPage() {
                       <X className="w-5 h-5" />
                     </button>
                   </div>
-                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                  <div className="relative w-full bg-black" style={{ paddingBottom: '56.25%' }}>
                     <iframe
-                      src={`https://player.twitch.tv/?channel=${activeStream1}&parent=www.youtubeonloop.com&muted=true`}
+                      src={`https://player.twitch.tv/?channel=${activeStream1}&parent=${parentDomain}&muted=true&autoplay=true`}
                       className="absolute top-0 left-0 w-full h-full"
+                      width="100%"
+                      height="100%"
                       allow="autoplay; fullscreen"
                       allowFullScreen
+                      frameBorder="0"
+                      scrolling="no"
                     />
                   </div>
                 </>
@@ -172,12 +182,16 @@ export default function TwitchPage() {
                       <X className="w-5 h-5" />
                     </button>
                   </div>
-                  <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                  <div className="relative w-full bg-black" style={{ paddingBottom: '56.25%' }}>
                     <iframe
-                      src={`https://player.twitch.tv/?channel=${activeStream2}&parent=${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}&muted=false`}
+                      src={`https://player.twitch.tv/?channel=${activeStream2}&parent=${parentDomain}&muted=true&autoplay=true`}
                       className="absolute top-0 left-0 w-full h-full"
+                      width="100%"
+                      height="100%"
                       allow="autoplay; fullscreen"
                       allowFullScreen
+                      frameBorder="0"
+                      scrolling="no"
                     />
                   </div>
                 </>
@@ -218,8 +232,9 @@ export default function TwitchPage() {
                     <span className="font-heading">{activeStream1} Chat</span>
                   </div>
                   <iframe
-                    src={`https://www.twitch.tv/embed/${activeStream1}/chat?parent=${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}&darkpopout`}
+                    src={`https://www.twitch.tv/embed/${activeStream1}/chat?parent=${parentDomain}&darkpopout`}
                     className="w-full h-96"
+                    frameBorder="0"
                   />
                 </div>
               )}
@@ -229,8 +244,9 @@ export default function TwitchPage() {
                     <span className="font-heading">{activeStream2} Chat</span>
                   </div>
                   <iframe
-                    src={`https://www.twitch.tv/embed/${activeStream2}/chat?parent=${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}&darkpopout`}
+                    src={`https://www.twitch.tv/embed/${activeStream2}/chat?parent=${parentDomain}&darkpopout`}
                     className="w-full h-96"
+                    frameBorder="0"
                   />
                 </div>
               )}
@@ -241,7 +257,7 @@ export default function TwitchPage() {
         {/* Tips */}
         <div className="bg-purple-200 border-4 border-black shadow-base p-4 rounded-base rotate-[0.5deg] mt-8">
           <p className="font-heading text-sm">
-            💡 <strong>{`Tip:`}</strong> {`You can enter just the channel name (e.g., "caedrel") or the full URL (e.g., "twitch.tv/caedrel")`}
+            💡 <strong>Tip:</strong> Streams start muted for autoplay to work. Click the unmute button on each player to hear audio!
           </p>
         </div>
 

@@ -16,7 +16,7 @@ import {
   SkipForward,
   Gauge,
   RefreshCw,
-  RotateCcw
+  RotateCcw,
 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -132,20 +132,26 @@ export default function Home() {
   }, [isPlaying])
 
   // Handle video state changes
-  const onPlayerStateChange = useCallback((event: YTPlayerEvent) => {
-    if (event.data === 0) { // ENDED
-      setLoopCount(prev => prev + 1)
-      const start = startTime ? parseInt(startTime) : 0
-      playerRef.current?.seekTo(start, true)
-      playerRef.current?.playVideo()
-    }
-    if (event.data === 1) { // PLAYING
-      setIsPlaying(true)
-    }
-    if (event.data === 2) { // PAUSED
-      setIsPlaying(false)
-    }
-  }, [startTime])
+  const onPlayerStateChange = useCallback(
+    (event: YTPlayerEvent) => {
+      if (event.data === 0) {
+        // ENDED
+        setLoopCount((prev) => prev + 1)
+        const start = startTime ? parseInt(startTime) : 0
+        playerRef.current?.seekTo(start, true)
+        playerRef.current?.playVideo()
+      }
+      if (event.data === 1) {
+        // PLAYING
+        setIsPlaying(true)
+      }
+      if (event.data === 2) {
+        // PAUSED
+        setIsPlaying(false)
+      }
+    },
+    [startTime],
+  )
 
   const onPlayerReady = useCallback(() => {
     if (playerRef.current) {
@@ -187,7 +193,14 @@ export default function Home() {
         playerRef.current = null
       }
     }
-  }, [apiReady, videoId, startTime, endTime, onPlayerStateChange, onPlayerReady])
+  }, [
+    apiReady,
+    videoId,
+    startTime,
+    endTime,
+    onPlayerStateChange,
+    onPlayerReady,
+  ])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -251,65 +264,71 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-white p-4 md:p-8 bg-[linear-gradient(to_right,#00000018_1px,transparent_1px),linear-gradient(to_bottom,#00000018_1px,transparent_1px)] bg-[size:45px_45px]">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-white bg-[linear-gradient(to_right,#00000018_1px,transparent_1px),linear-gradient(to_bottom,#00000018_1px,transparent_1px)] bg-[size:45px_45px] p-4 md:p-8">
+      <div className="mx-auto max-w-4xl">
         {/* Header */}
-        <div className="text-center mb-8 md:mb-12">
-          <div className="inline-block mb-4">
+        <div className="mb-8 text-center md:mb-12">
+          <div className="mb-4 inline-block">
             <Image
               src="/logo.webp"
               alt="YouTubeOnLoop - Loop Any YouTube Video"
               width={780}
               height={400}
-              className="h-16 md:h-20 w-auto"
+              className="h-16 w-auto md:h-20"
               priority
-              />
+            />
           </div>
-          <h1 className="text-3xl md:text-4xl font-heading tracking-tight">Play any Youtube video on loop</h1>
-          <p className="text-lg md:text-xl font-base mt-2">
-            Paste a YouTube link or just replace youtube.com with <code className="bg-bg/60 px-1.5 py-0.5 rounded border border-gray-400">youtubeonloop.com</code> in any YouTube URL
+          <h1 className="text-3xl font-heading tracking-tight md:text-4xl">
+            Play any Youtube video on loop
+          </h1>
+          <p className="mt-2 text-lg font-base md:text-xl">
+            Paste a YouTube link or just replace youtube.com with{' '}
+            <code className="rounded border border-gray-400 bg-bg/60 px-1.5 py-0.5">
+              youtubeonloop.com
+            </code>{' '}
+            in any YouTube URL
           </p>
         </div>
 
         {/* Input Form */}
         <form onSubmit={handleSubmit} className="mb-8">
-          <div className="bg-white border-4 border-black shadow-base p-4 md:p-6 rounded-base">
-            <div className="flex flex-col md:flex-row gap-4">
+          <div className="rounded-base border-4 border-black bg-white p-4 shadow-base md:p-6">
+            <div className="flex flex-col items-center gap-4 md:flex-row md:items-center">
               <input
                 type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="Paste YouTube URL here..."
-                className="flex-1 px-4 py-3 text-lg border-4 border-black rounded-base focus:outline-none focus:ring-4 focus:ring-main font-base"
+                className="w-full flex-1 rounded-base border-4 border-black px-4 py-3 text-lg font-base focus:outline-none focus:ring-4 focus:ring-main"
               />
               <Button type="submit" size="lg" className="text-lg font-heading">
-                <Play className="w-5 h-5 mr-2" />
+                <Play className="mr-2 h-5 w-5" />
                 Play & Repeat
               </Button>
             </div>
 
             {/* Optional time controls */}
-            <div className="mt-4 flex flex-wrap gap-4 items-center">
+            <div className="mt-4 flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
-                <label className="font-heading text-sm">Start (sec):</label>
+                <label className="text-sm font-heading">Start (sec):</label>
                 <input
                   type="number"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   placeholder="0"
                   min="0"
-                  className="w-20 px-2 py-1 border-2 border-black rounded-base text-center"
+                  className="w-20 rounded-base border-2 border-black px-2 py-1 text-center"
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="font-heading text-sm">End (sec):</label>
+                <label className="text-sm font-heading">End (sec):</label>
                 <input
                   type="number"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                   placeholder="∞"
                   min="0"
-                  className="w-20 px-2 py-1 border-2 border-black rounded-base text-center"
+                  className="w-20 rounded-base border-2 border-black px-2 py-1 text-center"
                 />
               </div>
               {videoId && (
@@ -319,7 +338,7 @@ export default function Home() {
                   onClick={handleReset}
                   className="ml-auto"
                 >
-                  <RotateCcw className="w-4 h-4 mr-2" />
+                  <RotateCcw className="mr-2 h-4 w-4" />
                   Clear
                 </Button>
               )}
@@ -331,45 +350,56 @@ export default function Home() {
         {videoId && (
           <div className="space-y-4">
             {/* Stats Bar */}
-            <div className="flex flex-wrap gap-4 justify-center">
+            <div className="flex flex-wrap justify-center gap-4">
               <div
-                className="bg-main border-4 border-black shadow-base px-6 py-3 rounded-base cursor-pointer hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none transition-all"
+                className="cursor-pointer rounded-base border-4 border-black bg-main px-6 py-3 shadow-base transition-all hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none"
                 onClick={resetLoopCount}
                 title="Click to reset"
               >
-                <span className="font-heading text-xl flex items-center gap-2">
-                  <RefreshCw className="w-5 h-5" />
-                  Loop Count: <span className="text-2xl font-bold">{loopCount}</span>
+                <span className="flex items-center gap-2 text-xl font-heading">
+                  <RefreshCw className="h-5 w-5" />
+                  Loop Count:{' '}
+                  <span className="text-2xl font-bold">{loopCount}</span>
                 </span>
               </div>
-              <div className="bg-white border-4 border-black shadow-base px-6 py-3 rounded-base">
-                <span className="font-heading text-xl flex items-center gap-2">
-                  {isPlaying ? <Play className="w-5 h-5 fill-current" /> : <Pause className="w-5 h-5" />}
+              <div className="rounded-base border-4 border-black bg-white px-6 py-3 shadow-base">
+                <span className="flex items-center gap-2 text-xl font-heading">
+                  {isPlaying ? (
+                    <Play className="h-5 w-5 fill-current" />
+                  ) : (
+                    <Pause className="h-5 w-5" />
+                  )}
                   {isPlaying ? 'Playing' : 'Paused'}
                 </span>
               </div>
-              <div className="bg-white border-4 border-black shadow-base px-6 py-3 rounded-base ">
-                <span className="font-heading text-lg">
-                  <span className='inline-block min-w-12'>{formatTime(currentTime)} </span>/ {formatTime(duration)}
+              <div className="rounded-base border-4 border-black bg-white px-6 py-3 shadow-base ">
+                <span className="text-lg font-heading">
+                  <span className="inline-block min-w-12">
+                    {formatTime(currentTime)}{' '}
+                  </span>
+                  / {formatTime(duration)}
                 </span>
               </div>
             </div>
 
             {/* Video Container */}
-            <div className="bg-black border-4 border-black shadow-base rounded-base overflow-hidden">
-              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <div className="overflow-hidden rounded-base border-4 border-black bg-black shadow-base">
+              <div
+                className="relative w-full"
+                style={{ paddingBottom: '56.25%' }}
+              >
                 <div
                   ref={containerRef}
-                  className="absolute top-0 left-0 w-full h-full"
+                  className="absolute left-0 top-0 h-full w-full"
                 />
               </div>
             </div>
 
             {/* Controls */}
-            <div className="bg-white border-4 border-black shadow-base p-4 rounded-base">
+            <div className="rounded-base border-4 border-black bg-white p-4 shadow-base">
               <div className="flex items-center justify-between">
                 {/* Spacer for centering */}
-                <div className="w-24 hidden md:block" />
+                <div className="hidden w-24 md:block" />
 
                 {/* Center controls */}
                 <div className="flex items-center gap-2 md:gap-3">
@@ -378,9 +408,9 @@ export default function Home() {
                     size="icon"
                     onClick={skipBack}
                     title="Back 10s"
-                    className="w-12 h-12"
+                    className="h-12 w-12"
                   >
-                    <SkipBack className="w-5 h-5" />
+                    <SkipBack className="h-5 w-5" />
                   </Button>
 
                   <Button
@@ -388,12 +418,12 @@ export default function Home() {
                     size="icon"
                     onClick={togglePlay}
                     title={isPlaying ? 'Pause' : 'Play'}
-                    className="w-14 h-14"
+                    className="h-14 w-14"
                   >
                     {isPlaying ? (
-                      <Pause className="w-6 h-6" />
+                      <Pause className="h-6 w-6" />
                     ) : (
-                      <Play className="w-6 h-6 ml-1" />
+                      <Play className="ml-1 h-6 w-6" />
                     )}
                   </Button>
 
@@ -402,9 +432,9 @@ export default function Home() {
                     size="icon"
                     onClick={skipForward}
                     title="Forward 10s"
-                    className="w-12 h-12"
+                    className="h-12 w-12"
                   >
-                    <SkipForward className="w-5 h-5" />
+                    <SkipForward className="h-5 w-5" />
                   </Button>
                 </div>
 
@@ -417,8 +447,8 @@ export default function Home() {
                     playerRef.current?.setPlaybackRate(speed)
                   }}
                 >
-                  <SelectTrigger className="w-24 h-12 border-2 border-black bg-white">
-                    <Gauge className="w-4 h-4" />
+                  <SelectTrigger className="h-12 w-24 border-2 border-black bg-white">
+                    <Gauge className="h-4 w-4" />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-2 border-black bg-white">
@@ -433,9 +463,10 @@ export default function Home() {
             </div>
 
             {/* Tips */}
-            <div className="bg-yellow-300 border-4 border-black shadow-base p-4 rounded-base rotate-[0.5deg]">
-              <p className="font-heading text-sm">
-                💡 <strong>Tip:</strong> Click the loop counter to reset it. Use start/end times to repeat a specific section!
+            <div className="rotate-[0.5deg] rounded-base border-4 border-black bg-yellow-300 p-4 shadow-base">
+              <p className="text-sm font-heading">
+                💡 <strong>Tip:</strong> Click the loop counter to reset it. Use
+                start/end times to repeat a specific section!
               </p>
             </div>
           </div>
@@ -443,20 +474,20 @@ export default function Home() {
 
         {/* Empty State */}
         {!videoId && (
-          <div className="bg-white border-4 border-black shadow-base p-8 md:p-12 rounded-base text-center">
-            <div className="text-6xl mb-4">📺</div>
-            <h2 className="text-2xl font-heading mb-2">No video yet</h2>
-            <p className="text-gray-600 font-base">
+          <div className="rounded-base border-4 border-black bg-white p-8 text-center shadow-base md:p-12">
+            <div className="mb-4 text-6xl">📺</div>
+            <h2 className="mb-2 text-2xl font-heading">No video yet</h2>
+            <p className="font-base text-gray-600">
               Paste a YouTube URL above to start looping!
             </p>
-            <div className="mt-6 flex flex-wrap gap-2 justify-center">
-              <span className="bg-bg border-2 border-black px-3 py-1 rounded-base text-sm">
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <span className="rounded-base border-2 border-black bg-bg px-3 py-1 text-sm">
                 youtube.com/watch?v=...
               </span>
-              <span className="bg-bg border-2 border-black px-3 py-1 rounded-base text-sm">
+              <span className="rounded-base border-2 border-black bg-bg px-3 py-1 text-sm">
                 youtu.be/...
               </span>
-              <span className="bg-bg border-2 border-black px-3 py-1 rounded-base text-sm">
+              <span className="rounded-base border-2 border-black bg-bg px-3 py-1 text-sm">
                 Video ID
               </span>
             </div>
@@ -465,7 +496,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="mt-12 text-center">
-          <p className="text-sm text-gray-600 font-base">
+          <p className="text-sm font-base text-gray-600">
             Made with ❤️ for endless loops
           </p>
         </footer>

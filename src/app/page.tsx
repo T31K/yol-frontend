@@ -495,8 +495,31 @@ export default function Home() {
         )}
 
         {/* Footer */}
-        <footer className="mt-12 text-center">
-          <p className="text-sm font-base text-gray-600">
+        <footer className="mt-12">
+          <div className="mb-6 rounded-base border-4 border-black bg-[#FFECD2] p-4 shadow-base">
+            <p className="mb-3 text-center text-sm font-heading">Popular uses</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <a
+                href="/for/guitar-practice"
+                className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+              >
+                🎸 Guitar Practice
+              </a>
+              <a
+                href="/for/language-learning"
+                className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+              >
+                🗣 Language Learning
+              </a>
+              <a
+                href="/listenonrepeat-alternative"
+                className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+              >
+                🔁 ListenOnRepeat Alternative
+              </a>
+            </div>
+          </div>
+          <p className="text-center text-sm font-base text-gray-600">
             Made with ❤️ for endless loops
           </p>
         </footer>

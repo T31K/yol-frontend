@@ -17,8 +17,11 @@ import {
   Gauge,
   RefreshCw,
   RotateCcw,
+  X,
+  Trash2,
 } from 'lucide-react'
 import Image from 'next/image'
+import { useLoopHistory } from '@/lib/use-loop-history'
 
 // YouTube IFrame API types
 interface YTPlayer {
@@ -96,6 +99,7 @@ export default function Home() {
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const timeUpdateRef = useRef<NodeJS.Timeout | null>(null)
+  const { history, upsert, remove, clear } = useLoopHistory()
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -136,7 +140,11 @@ export default function Home() {
     (event: YTPlayerEvent) => {
       if (event.data === 0) {
         // ENDED
-        setLoopCount((prev) => prev + 1)
+        setLoopCount((prev) => {
+          const next = prev + 1
+          if (videoId) upsert(videoId, next)
+          return next
+        })
         const start = startTime ? parseInt(startTime) : 0
         playerRef.current?.seekTo(start, true)
         playerRef.current?.playVideo()
@@ -150,7 +158,7 @@ export default function Home() {
         setIsPlaying(false)
       }
     },
-    [startTime],
+    [startTime, videoId, upsert],
   )
 
   const onPlayerReady = useCallback(() => {
@@ -215,6 +223,7 @@ export default function Home() {
         setVideoId(id)
         setLoopCount(0)
         setIsPlaying(true)
+        upsert(id, 0)
       }
     }
   }
@@ -490,6 +499,60 @@ export default function Home() {
               <span className="rounded-base border-2 border-black bg-bg px-3 py-1 text-sm">
                 Video ID
               </span>
+            </div>
+          </div>
+        )}
+
+        {/* Loop History */}
+        {history.length > 0 && (
+          <div className="mt-8 rounded-base border-4 border-black bg-white p-4 shadow-base md:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-heading">Recently Looped</h2>
+              <Button
+                variant="neutral"
+                size="sm"
+                onClick={clear}
+                className="text-xs"
+              >
+                <Trash2 className="mr-1 h-3 w-3" />
+                Clear All
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {history.map((item) => (
+                <div
+                  key={item.videoId}
+                  className="flex items-center gap-3 rounded-base border-2 border-black p-2 transition-all hover:bg-bg"
+                >
+                  <img
+                    src={`https://i.ytimg.com/vi/${item.videoId}/default.jpg`}
+                    alt=""
+                    className="h-12 w-16 shrink-0 rounded border border-black object-cover"
+                  />
+                  <button
+                    onClick={() => {
+                      setUrl(`https://youtube.com/watch?v=${item.videoId}`)
+                      setVideoId(item.videoId)
+                      setLoopCount(0)
+                      setIsPlaying(true)
+                    }}
+                    className="flex-1 text-left text-sm font-base text-gray-700 hover:text-black truncate"
+                  >
+                    {item.videoId}
+                  </button>
+                  <div className="flex shrink-0 items-center gap-1 rounded-base border-2 border-black bg-main px-2 py-1">
+                    <RefreshCw className="h-3 w-3" />
+                    <span className="text-sm font-heading">{item.loopCount}</span>
+                  </div>
+                  <button
+                    onClick={() => remove(item.videoId)}
+                    className="shrink-0 rounded p-1 text-gray-400 hover:bg-red-100 hover:text-red-600"
+                    title="Remove"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         )}

@@ -19,8 +19,9 @@ import {
   SkipForward,
   Gauge,
   RefreshCw,
-  Loader2
+  Loader2,
 } from 'lucide-react'
+import { useLoopHistory } from '@/lib/use-loop-history'
 
 // YouTube IFrame API types
 interface YTPlayer {
@@ -86,6 +87,7 @@ function WatchContent() {
   const [duration, setDuration] = useState(0)
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const { upsert } = useLoopHistory()
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -123,7 +125,11 @@ function WatchContent() {
   // Handle video state changes
   const onPlayerStateChange = useCallback((event: YTPlayerEvent) => {
     if (event.data === 0) { // ENDED
-      setLoopCount(prev => prev + 1)
+      setLoopCount(prev => {
+        const next = prev + 1
+        if (videoId) upsert(videoId, next)
+        return next
+      })
       const start = startTime ? parseInt(startTime) : 0
       playerRef.current?.seekTo(start, true)
       playerRef.current?.playVideo()
@@ -134,7 +140,7 @@ function WatchContent() {
     if (event.data === 2) { // PAUSED
       setIsPlaying(false)
     }
-  }, [startTime])
+  }, [startTime, videoId, upsert])
 
   const onPlayerReady = useCallback(() => {
     if (playerRef.current) {
@@ -142,6 +148,11 @@ function WatchContent() {
       playerRef.current.setPlaybackRate(playbackSpeed)
     }
   }, [playbackSpeed])
+
+  // Save to history on load
+  useEffect(() => {
+    if (videoId) upsert(videoId, 0)
+  }, [videoId, upsert])
 
   // Create player when video ID is available
   useEffect(() => {

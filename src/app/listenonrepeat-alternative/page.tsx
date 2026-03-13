@@ -215,6 +215,19 @@ export default function ListenOnRepeatAlternativePage() {
           </div>
         </div>
 
+        {/* Popular loops */}
+        <div className="mb-8 rounded-base border-4 border-black bg-white p-6 shadow-base">
+          <h2 className="mb-3 text-xl font-heading">Start Looping Now</h2>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/loop/bohemian-rhapsody" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Bohemian Rhapsody</Link>
+            <Link href="/loop/blinding-lights" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Blinding Lights</Link>
+            <Link href="/loop/lofi-hip-hop-radio" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Lo-fi Radio</Link>
+            <Link href="/loop/uptown-funk" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Uptown Funk</Link>
+            <Link href="/loop/how-you-like-that" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">How You Like That</Link>
+            <Link href="/loop" className="rounded-base border-2 border-black bg-main px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Browse all →</Link>
+          </div>
+        </div>
+
         {/* Footer */}
         <footer className="text-center">
           <Link href="/" className="text-sm font-heading underline hover:text-main">

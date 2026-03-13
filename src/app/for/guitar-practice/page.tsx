@@ -173,6 +173,19 @@ export default function GuitarPracticePage() {
           </div>
         </div>
 
+        {/* Popular loops for guitar */}
+        <div className="mb-8 rounded-base border-4 border-black bg-white p-6 shadow-base">
+          <h2 className="mb-3 text-xl font-heading">Popular Songs to Loop for Practice</h2>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/loop/sweet-child-o-mine" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Sweet Child O&apos; Mine</Link>
+            <Link href="/loop/hotel-california" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Hotel California</Link>
+            <Link href="/loop/stairway-to-heaven" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Stairway to Heaven</Link>
+            <Link href="/loop/comfortably-numb" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Comfortably Numb</Link>
+            <Link href="/loop/smells-like-teen-spirit" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Smells Like Teen Spirit</Link>
+            <Link href="/loop" className="rounded-base border-2 border-black bg-main px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Browse all →</Link>
+          </div>
+        </div>
+
         {/* Footer */}
         <footer className="text-center">
           <Link href="/" className="text-sm font-heading underline hover:text-main">

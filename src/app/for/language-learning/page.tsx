@@ -175,6 +175,19 @@ export default function LanguageLearningPage() {
           </div>
         </div>
 
+        {/* Popular loops */}
+        <div className="mb-8 rounded-base border-4 border-black bg-white p-6 shadow-base">
+          <h2 className="mb-3 text-xl font-heading">Popular Songs to Loop</h2>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/loop/despacito" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Despacito</Link>
+            <Link href="/loop/bailando" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Bailando</Link>
+            <Link href="/loop/danza-kuduro" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Danza Kuduro</Link>
+            <Link href="/loop/dynamite" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Dynamite (BTS)</Link>
+            <Link href="/loop/gurenge" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Gurenge (LiSA)</Link>
+            <Link href="/loop" className="rounded-base border-2 border-black bg-main px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Browse all →</Link>
+          </div>
+        </div>
+
         {/* Footer */}
         <footer className="text-center">
           <Link href="/" className="text-sm font-heading underline hover:text-main">

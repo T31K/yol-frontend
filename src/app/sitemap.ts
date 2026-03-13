@@ -1,9 +1,10 @@
 import type { MetadataRoute } from 'next'
+import { songs } from '@/data/songs'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://youtubeonloop.com'
 
-  return [
+  const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
       lastModified: new Date(),
@@ -29,4 +30,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
   ]
+
+  const loopPages: MetadataRoute.Sitemap = songs.map((song) => ({
+    url: `${baseUrl}/loop/${song.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }))
+
+  return [...staticPages, ...loopPages]
 }

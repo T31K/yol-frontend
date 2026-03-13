@@ -581,6 +581,15 @@ export default function Home() {
                 🔁 ListenOnRepeat Alternative
               </a>
             </div>
+            <p className="mb-2 mt-4 text-center text-sm font-heading">Popular loops</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <a href="/loop/bohemian-rhapsody" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Bohemian Rhapsody</a>
+              <a href="/loop/despacito" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Despacito</a>
+              <a href="/loop/blinding-lights" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Blinding Lights</a>
+              <a href="/loop/lofi-hip-hop-radio" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Lo-fi Radio</a>
+              <a href="/loop/shape-of-you" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Shape of You</a>
+              <a href="/loop/dynamite" className="rounded-base border-2 border-black bg-white px-3 py-1 text-sm font-heading shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">Dynamite</a>
+            </div>
           </div>
           <p className="text-center text-sm font-base text-gray-600">
             Made with ❤️ for endless loops

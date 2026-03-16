@@ -6,6 +6,7 @@ export interface LoopHistoryItem {
   videoId: string
   loopCount: number
   lastPlayed: number // timestamp
+  title?: string
 }
 
 const STORAGE_KEY = 'yol-loop-history'
@@ -31,10 +32,11 @@ export function useLoopHistory() {
     setHistory(loadHistory())
   }, [])
 
-  const upsert = useCallback((videoId: string, loopCount: number) => {
+  const upsert = useCallback((videoId: string, loopCount: number, title?: string) => {
     setHistory((prev) => {
+      const existing = prev.find((h) => h.videoId === videoId)
       const next = prev.filter((h) => h.videoId !== videoId)
-      next.unshift({ videoId, loopCount, lastPlayed: Date.now() })
+      next.unshift({ videoId, loopCount, lastPlayed: Date.now(), title: title ?? existing?.title })
       const trimmed = next.slice(0, MAX_ITEMS)
       saveHistory(trimmed)
       return trimmed

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
-import { DM_Sans } from 'next/font/google'
+import { Lexend } from 'next/font/google'
 import './globals.css'
 import Script from 'next/script'
 
-const dmSans = DM_Sans({ subsets: ['latin'] })
+const lexend = Lexend({ subsets: ['latin'] })
 
 const siteUrl = 'https://youtubeonloop.com'
 
@@ -77,7 +77,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={dmSans.className}>
+      <body className={lexend.className}>
         {children}
         <Script
           src="https://umami.t31k.cloud/script.js"

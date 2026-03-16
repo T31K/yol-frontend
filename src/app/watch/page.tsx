@@ -63,11 +63,10 @@ interface YTNamespace {
   Player: new (element: HTMLElement, options: YTPlayerOptions) => YTPlayer
 }
 
-declare global {
-  interface Window {
-    YT: YTNamespace
-    onYouTubeIframeAPIReady: () => void
-  }
+// Window.YT declared globally in src/app/page.tsx
+declare const window: Window & {
+  YT: YTNamespace
+  onYouTubeIframeAPIReady: () => void
 }
 
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
@@ -149,9 +148,14 @@ function WatchContent() {
     }
   }, [playbackSpeed])
 
-  // Save to history on load
+  // Save to history on load and fetch title
   useEffect(() => {
-    if (videoId) upsert(videoId, 0)
+    if (!videoId) return
+    upsert(videoId, 0)
+    fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.title) upsert(videoId, 0, data.title) })
+      .catch(() => {})
   }, [videoId, upsert])
 
   // Create player when video ID is available
@@ -305,7 +309,7 @@ function WatchContent() {
         </div>
 
         {/* Video Container */}
-        <div className="bg-black border-4 border-black shadow-base rounded-base overflow-hidden">
+        <div className="bg-white border-4 border-black shadow-base rounded-base overflow-hidden">
           <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
             <div
               ref={containerRef}

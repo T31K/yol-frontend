@@ -8,25 +8,28 @@
   box-sizing: border-box;
 }
 
-body {
-  --sb-track-color: #ffffff;
-  --sb-thumb-color: #000000;
-}
 
-body::-webkit-scrollbar {
-  width: 16px;
-}
 
-body::-webkit-scrollbar-track {
-  background: var(--sb-track-color);
-}
 
-body::-webkit-scrollbar-thumb {
-  background: var(--sb-thumb-color);
-}
-
-@supports not selector(::-webkit-scrollbar) {
-  body {
-    scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
+@layer base {
+  :root {
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 30 45% 65%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 20%;
+    --sidebar-ring: 30 45% 65%;
+  }
+  .dark {
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }

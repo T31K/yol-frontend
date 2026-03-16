@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import * as AccordionPrimitive from "@radix-ui/react-accordion"
-import { ChevronDown } from "lucide-react"
+import * as AccordionPrimitive from '@radix-ui/react-accordion'
+import { ChevronDown } from 'lucide-react'
 
-import * as React from "react"
+import * as React from 'react'
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils'
 
 function Accordion({
   ...props
@@ -21,7 +21,7 @@ function AccordionItem({
     <AccordionPrimitive.Item
       data-slot="accordion-item"
       className={cn(
-        "rounded-base overflow-hidden border-2 border-b border-black shadow-shadow dark:border-slate-800",
+        'shadow-shadow overflow-hidden rounded-base border-b-0 dark:border-slate-800',
         className,
       )}
       {...props}
@@ -39,7 +39,7 @@ function AccordionTrigger({
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          "flex flex-1 items-center justify-between text-left text-base text-main-foreground border-black focus-visible:ring-[3px] bg-main px-4 py-3 font-heading transition-all [&[data-state=open]>svg]:rotate-180 data-[state=open]:rounded-b-none data-[state=open]:border-b-2 disabled:pointer-events-none disabled:opacity-50 dark:border-slate-800",
+          'text-main-foreground flex flex-1 items-center justify-between border-none bg-main px-4 py-3 text-left text-base font-heading transition-all focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 data-[state=open]:rounded-b-none data-[state=open]:border-b-2 dark:border-slate-800 [&[data-state=open]>svg]:rotate-180',
           className,
         )}
         {...props}
@@ -59,10 +59,10 @@ function AccordionContent({
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
-      className="overflow-hidden rounded-b-base bg-secondary-background text-sm font-base transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+      className="bg-secondary-background overflow-hidden rounded-b-base text-sm font-base transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
       {...props}
     >
-      <div className={cn("px-4 py-2", className)}>{children}</div>
+      <div className={cn('px-4 py-2', className)}>{children}</div>
     </AccordionPrimitive.Content>
   )
 }

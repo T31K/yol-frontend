@@ -113,6 +113,7 @@ function extractVideoId(url: string): string | null {
 }
 
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 export default function Home() {
   const [url, setUrl] = useState('')
@@ -241,7 +242,7 @@ export default function Home() {
     searchDebounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(
-          `http://localhost:3001/yol/search?q=${encodeURIComponent(url)}`,
+          `${API_URL}/yol/search?q=${encodeURIComponent(url)}`,
         )
         const data = await res.json()
         setSearchResults(Array.isArray(data) ? data : [])
@@ -457,7 +458,15 @@ export default function Home() {
                 {!videoId && (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-white px-6">
                     <p className="text-center text-sm font-bold text-stone-500">
-                      Search for a song<br /><span className="inline-flex items-center gap-3 uppercase tracking-wider"><span className="inline-block h-px w-8 bg-stone-300"></span>or<span className="inline-block h-px w-8 bg-stone-300"></span></span><br />paste a YouTube link
+                      Search for a song
+                      <br />
+                      <span className="inline-flex items-center gap-3 uppercase tracking-wider">
+                        <span className="inline-block h-px w-8 bg-stone-300"></span>
+                        or
+                        <span className="inline-block h-px w-8 bg-stone-300"></span>
+                      </span>
+                      <br />
+                      paste a YouTube link
                     </p>
                     <form onSubmit={handleSubmit} className="w-full max-w-lg">
                       <div className="relative">

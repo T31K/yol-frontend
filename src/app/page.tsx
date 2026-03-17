@@ -465,7 +465,7 @@ export default function Home() {
       .padStart(2, '0')}`
 
   return (
-    <div className="min-h-screen bg-[#F7F2E8] bg-[linear-gradient(to_right,#DBA97922_1px,transparent_1px),linear-gradient(to_bottom,#DBA97922_1px,transparent_1px)] bg-[size:45px_45px]">
+    <div className="min-h-screen bg-[#FFF2EB] bg-[linear-gradient(to_right,#FFD6BA33_1px,transparent_1px),linear-gradient(to_bottom,#FFD6BA33_1px,transparent_1px)] bg-[size:45px_45px]">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -983,7 +983,7 @@ export default function Home() {
         {/* end center */}
 
         {/* RIGHT ADS SIDEBAR — floating */}
-        <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 flex-col overflow-hidden rounded-2xl border-2 border-black bg-[#E8EFCF] opacity-0 shadow-base xl:flex xl:w-[160px]">
+        <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 flex-col overflow-hidden rounded-2xl border-2 border-black bg-[#FFE8CD] opacity-0 shadow-base xl:flex xl:w-[160px]">
           <div className="border-b-2 border-black px-3 py-3 text-center">
             <p className="text-xs font-bold">Advertisement</p>
           </div>

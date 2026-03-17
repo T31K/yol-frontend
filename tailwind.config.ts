@@ -16,10 +16,10 @@ const config: Config = {
   			container: '1300px'
   		},
   		colors: {
-  			bg: '#ECCA9C',
-  			main: '#DBA979',
-  			sage: '#AFD198',
-  			'sage-light': '#E8EFCF',
+  			bg: '#FFF2EB',
+  			main: '#FFD6BA',
+  			sage: '#FFDCDC',
+  			'sage-light': '#FFE8CD',
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',

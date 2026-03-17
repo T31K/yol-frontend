@@ -11,6 +11,7 @@ export interface PlaylistVideo {
 export interface Playlist {
   id: string
   name: string
+  emoji?: string
   createdAt: number
   videos: PlaylistVideo[]
 }
@@ -83,5 +84,24 @@ export function usePlaylists() {
     })
   }, [])
 
-  return { playlists, createPlaylist, deletePlaylist, addToPlaylist, removeFromPlaylist }
+  const setPlaylistEmoji = useCallback((id: string, emoji: string) => {
+    setPlaylists((prev) => {
+      const next = prev.map((p) => (p.id === id ? { ...p, emoji } : p))
+      save(next)
+      return next
+    })
+  }, [])
+
+  const reorderPlaylists = useCallback((orderedIds: string[]) => {
+    setPlaylists((prev) => {
+      const map = new Map(prev.map((p) => [p.id, p]))
+      const next = orderedIds.map((id) => map.get(id)).filter(Boolean) as Playlist[]
+      // append any that weren't in orderedIds (safety)
+      prev.forEach((p) => { if (!next.find((n) => n.id === p.id)) next.push(p) })
+      save(next)
+      return next
+    })
+  }, [])
+
+  return { playlists, createPlaylist, deletePlaylist, addToPlaylist, removeFromPlaylist, reorderPlaylists, setPlaylistEmoji }
 }

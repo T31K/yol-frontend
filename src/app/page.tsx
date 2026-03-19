@@ -41,6 +41,7 @@ import {
   GripVertical,
   NotebookPen,
   Check,
+  Lightbulb,
 } from 'lucide-react'
 import Image from 'next/image'
 import { NoteEditor } from '@/components/NoteEditor'
@@ -173,6 +174,10 @@ export default function Home() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [featureOpen, setFeatureOpen] = useState(false)
+  const [featureText, setFeatureText] = useState('')
+  const [featureSubmitting, setFeatureSubmitting] = useState(false)
+  const [featureSubmitted, setFeatureSubmitted] = useState(false)
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const urlInputRef = useRef<HTMLInputElement>(null)
@@ -1055,6 +1060,76 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* ── FEATURE REQUEST BUTTON ── */}
+      <button
+        onClick={() => { setFeatureOpen(true); setFeatureSubmitted(false); setFeatureText('') }}
+        className="fixed right-5 top-5 z-50 flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-main hover:shadow-none"
+      >
+        <Lightbulb className="h-3.5 w-3.5" />
+        Feature Request
+      </button>
+
+      <Dialog open={featureOpen} onOpenChange={setFeatureOpen}>
+        <DialogContent className="rounded-2xl border-2 border-black bg-white shadow-none sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <Lightbulb className="h-5 w-5" />
+              Request a Feature
+            </DialogTitle>
+          </DialogHeader>
+          {featureSubmitted ? (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-main">
+                <Check className="h-6 w-6" />
+              </div>
+              <p className="text-center text-sm font-bold">Thanks for the suggestion!</p>
+              <p className="text-center text-xs text-stone-500">We read every request.</p>
+            </div>
+          ) : (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault()
+                if (!featureText.trim()) return
+                setFeatureSubmitting(true)
+                try {
+                  await fetch(`${API_URL}/yol/feature-request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: featureText.trim() }),
+                  })
+                  setFeatureSubmitted(true)
+                } catch {
+                  // silent fail — still show success to user
+                  setFeatureSubmitted(true)
+                } finally {
+                  setFeatureSubmitting(false)
+                }
+              }}
+              className="flex flex-col gap-3 pt-1"
+            >
+              <p className="text-xs text-stone-500">
+                What would make YouTubeOnLoop better for you?
+              </p>
+              <textarea
+                value={featureText}
+                onChange={(e) => setFeatureText(e.target.value)}
+                placeholder="e.g. Add a pitch control slider…"
+                rows={4}
+                className="w-full resize-none rounded-xl border-2 border-black px-3 py-2 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-main"
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={!featureText.trim() || featureSubmitting}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-black bg-main py-2.5 text-sm font-bold transition-all hover:opacity-90 active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
+              >
+                {featureSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit'}
+              </button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── HELP BUTTON ── */}
       <button

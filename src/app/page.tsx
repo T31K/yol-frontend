@@ -2256,7 +2256,7 @@ function SidebarMenu({
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const [pos, setPos] = useState({ bottom: 0, left: 0 })
   const btnRef = useRef<HTMLButtonElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -2275,7 +2275,7 @@ function SidebarMenu({
   const handleToggle = () => {
     if (!open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect()
-      setPos({ top: rect.top, left: rect.right + 8 })
+      setPos({ bottom: window.innerHeight - rect.bottom, left: rect.right + 8 })
     }
     setOpen((v) => !v)
   }
@@ -2290,7 +2290,6 @@ function SidebarMenu({
     setLoading(false)
     if (err) { setError(err); return }
     setAuthOpen(false)
-    setOpen(false)
     setEmail(''); setPassword('')
   }
 
@@ -2309,10 +2308,46 @@ function SidebarMenu({
         </button>
       </div>
 
+      {/* Dialog lives outside the portal so it persists when dropdown closes */}
+      <Dialog open={authOpen} onOpenChange={(v) => { setAuthOpen(v); if (!v) { setError(null); setEmail(''); setPassword('') } }}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>{authMode === 'login' ? 'Sign in' : 'Create account'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAuthSubmit} className="flex flex-col gap-3 pt-1">
+            <div className="flex gap-1">
+              <button type="button" onClick={() => setAuthMode('login')}
+                className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'login' ? 'bg-main' : 'hover:bg-bg'}`}>
+                Sign in
+              </button>
+              <button type="button" onClick={() => setAuthMode('register')}
+                className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'register' ? 'bg-main' : 'hover:bg-bg'}`}>
+                Register
+              </button>
+            </div>
+            <input
+              type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email" required autoFocus
+              className="rounded-xl border-2 border-black px-3 py-2 text-sm focus:outline-none"
+            />
+            <input
+              type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password (min 6 chars)" required minLength={6}
+              className="rounded-xl border-2 border-black px-3 py-2 text-sm focus:outline-none"
+            />
+            {error && <p className="text-xs text-red-600 font-bold">{error}</p>}
+            <button type="submit" disabled={loading}
+              className="rounded-xl border-2 border-black bg-main py-2 text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-all">
+              {loading ? '…' : authMode === 'login' ? 'Sign in' : 'Create account'}
+            </button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {open && typeof document !== 'undefined' && createPortal(
         <div
           ref={dropRef}
-          style={{ top: pos.top, left: pos.left }}
+          style={{ bottom: pos.bottom, left: pos.left }}
           className="fixed z-50 w-56 rounded-2xl border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
         >
           {/* Auth section */}
@@ -2333,45 +2368,12 @@ function SidebarMenu({
             </div>
           ) : (
             <div className="p-3 border-b-2 border-black">
-              <Dialog open={authOpen} onOpenChange={(v) => { setAuthOpen(v); if (!v) { setError(null); setEmail(''); setPassword('') } }}>
-                <DialogTrigger asChild>
-                  <button className="w-full rounded-xl border-2 border-black bg-main px-2 py-1.5 text-xs font-bold hover:opacity-90 transition-all">
-                    Sign in / Register
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="max-w-xs">
-                  <DialogHeader>
-                    <DialogTitle>{authMode === 'login' ? 'Sign in' : 'Create account'}</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleAuthSubmit} className="flex flex-col gap-3 pt-1">
-                    <div className="flex gap-1">
-                      <button type="button" onClick={() => setAuthMode('login')}
-                        className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'login' ? 'bg-main' : 'hover:bg-bg'}`}>
-                        Sign in
-                      </button>
-                      <button type="button" onClick={() => setAuthMode('register')}
-                        className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'register' ? 'bg-main' : 'hover:bg-bg'}`}>
-                        Register
-                      </button>
-                    </div>
-                    <input
-                      type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email" required autoFocus
-                      className="rounded-xl border-2 border-black px-3 py-2 text-sm focus:outline-none"
-                    />
-                    <input
-                      type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Password (min 6 chars)" required minLength={6}
-                      className="rounded-xl border-2 border-black px-3 py-2 text-sm focus:outline-none"
-                    />
-                    {error && <p className="text-xs text-red-600 font-bold">{error}</p>}
-                    <button type="submit" disabled={loading}
-                      className="rounded-xl border-2 border-black bg-main py-2 text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-all">
-                      {loading ? '…' : authMode === 'login' ? 'Sign in' : 'Create account'}
-                    </button>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <button
+                onClick={() => { setAuthOpen(true); setOpen(false) }}
+                className="w-full rounded-xl border-2 border-black bg-main px-2 py-1.5 text-xs font-bold hover:opacity-90 transition-all"
+              >
+                Sign in / Register
+              </button>
             </div>
           )}
 

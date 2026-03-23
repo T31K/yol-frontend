@@ -188,7 +188,7 @@ export default function Home() {
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef('')
   const endTimeRef = useRef('')
-  const { user, isLoggedIn, sessionExpired, login, logout, dismissExpired } = useAuth()
+  const { user, isLoggedIn, sessionExpired, login, loginWithEmail, register, logout, dismissExpired } = useAuth()
   const { history, setHistory, flushSync: flushHistory, upsert, remove, clear } = useLoopHistory(isLoggedIn)
   const {
     playlists,
@@ -622,6 +622,8 @@ export default function Home() {
             isLoggedIn={isLoggedIn}
             user={user}
             login={login}
+            loginWithEmail={loginWithEmail}
+            register={register}
             logout={logout}
             flushPlaylists={flushPlaylists}
             flushFolders={flushFolders}
@@ -665,6 +667,8 @@ export default function Home() {
             isLoggedIn={isLoggedIn}
             user={user}
             login={login}
+            loginWithEmail={loginWithEmail}
+            register={register}
             logout={logout}
             flushPlaylists={flushPlaylists}
             flushFolders={flushFolders}
@@ -1467,6 +1471,102 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
+// ── Auth panel ────────────────────────────────────────────────────────────────
+function AuthPanel({
+  isLoggedIn,
+  user,
+  loginWithEmail,
+  register,
+  logout,
+}: {
+  isLoggedIn: boolean
+  user: import('@/lib/use-auth').AuthUser | null
+  loginWithEmail: (email: string, password: string) => Promise<string | null>
+  register: (email: string, password: string) => Promise<string | null>
+  logout: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    const err = mode === 'login'
+      ? await loginWithEmail(email, password)
+      : await register(email, password)
+    setLoading(false)
+    if (err) { setError(err); return }
+    setOpen(false)
+    setEmail(''); setPassword('')
+  }
+
+  if (isLoggedIn) {
+    return (
+      <div className="flex items-center gap-2 px-4 py-2 border-b-2 border-black">
+        {user?.avatar_url && (
+          <img src={user.avatar_url} alt={user.name} className="w-6 h-6 rounded-full border-2 border-black flex-shrink-0" />
+        )}
+        <span className="text-xs font-bold truncate flex-1">{user?.name || user?.email}</span>
+        <button onClick={logout} className="text-xs text-stone-400 hover:text-black font-bold whitespace-nowrap">
+          Sign out
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-b-2 border-black">
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center justify-center gap-1.5 py-2 text-xs font-bold text-stone-500 hover:bg-main hover:text-black transition-all"
+        >
+          Sign in / Register
+        </button>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2 p-3">
+          <div className="flex gap-1 mb-1">
+            <button type="button" onClick={() => setMode('login')}
+              className={`flex-1 rounded-lg border-2 border-black py-1 text-xs font-bold transition-all ${mode === 'login' ? 'bg-main' : 'bg-white hover:bg-bg'}`}>
+              Sign in
+            </button>
+            <button type="button" onClick={() => setMode('register')}
+              className={`flex-1 rounded-lg border-2 border-black py-1 text-xs font-bold transition-all ${mode === 'register' ? 'bg-main' : 'bg-white hover:bg-bg'}`}>
+              Register
+            </button>
+          </div>
+          <input
+            type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email" required autoFocus
+            className="rounded-lg border-2 border-black px-2 py-1.5 text-xs focus:outline-none"
+          />
+          <input
+            type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password" required minLength={6}
+            className="rounded-lg border-2 border-black px-2 py-1.5 text-xs focus:outline-none"
+          />
+          {error && <p className="text-xs text-red-600 font-bold">{error}</p>}
+          <div className="flex gap-1">
+            <button type="button" onClick={() => { setOpen(false); setError(null); setEmail(''); setPassword('') }}
+              className="flex-1 rounded-lg border-2 border-black py-1.5 text-xs font-bold hover:bg-bg">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading}
+              className="flex-1 rounded-lg border-2 border-black bg-main py-1.5 text-xs font-bold hover:opacity-90 disabled:opacity-50">
+              {loading ? '…' : mode === 'login' ? 'Sign in' : 'Register'}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  )
+}
+
 // ── Shared sidebar content component ─────────────────────────────────────────
 function LibrarySidebar({
   playlists,
@@ -1489,6 +1589,8 @@ function LibrarySidebar({
   isLoggedIn,
   user,
   login,
+  loginWithEmail,
+  register,
   logout,
   flushPlaylists,
   flushFolders,
@@ -1521,6 +1623,8 @@ function LibrarySidebar({
   isLoggedIn: boolean
   user: import('@/lib/use-auth').AuthUser | null
   login: () => void
+  loginWithEmail: (email: string, password: string) => Promise<string | null>
+  register: (email: string, password: string) => Promise<string | null>
   logout: () => void
   flushPlaylists: () => void
   flushFolders: () => void
@@ -1596,23 +1700,14 @@ function LibrarySidebar({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Auth — hidden until OAuth is ready */}
-      {isLoggedIn && (
-        <div className="px-3 pt-2">
-          <div className="flex items-center gap-2 px-1 mb-2">
-            {user?.avatar_url && (
-              <img src={user.avatar_url} alt={user.name} className="w-7 h-7 rounded-full border-2 border-black flex-shrink-0" />
-            )}
-            <span className="text-xs font-bold truncate flex-1">{user?.name}</span>
-            <button
-              onClick={() => { flushPlaylists(); flushFolders(); flushHistory(); logout() }}
-              className="text-xs font-bold text-stone-400 hover:text-black whitespace-nowrap"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Auth */}
+      <AuthPanel
+        isLoggedIn={isLoggedIn}
+        user={user}
+        loginWithEmail={loginWithEmail}
+        register={register}
+        logout={() => { flushPlaylists(); flushFolders(); flushHistory(); logout() }}
+      />
       <Tabs
         defaultValue="playlists"
         className="flex flex-1 flex-col overflow-hidden"

@@ -109,6 +109,40 @@ export function useAuth() {
     window.location.href = `${API_URL}/yol/auth/google?redirect=${encodeURIComponent(redirect)}`
   }, [])
 
+  const loginWithEmail = useCallback(async (email: string, password: string): Promise<string | null> => {
+    try {
+      const res = await fetch(`${API_URL}/yol/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
+      if (!res.ok) return data.error || 'Login failed'
+      localStorage.setItem(TOKEN_KEY, data.token)
+      setUser(decodeJwt(data.token))
+      return null
+    } catch {
+      return 'Network error'
+    }
+  }, [])
+
+  const register = useCallback(async (email: string, password: string): Promise<string | null> => {
+    try {
+      const res = await fetch(`${API_URL}/yol/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
+      if (!res.ok) return data.error || 'Registration failed'
+      localStorage.setItem(TOKEN_KEY, data.token)
+      setUser(decodeJwt(data.token))
+      return null
+    } catch {
+      return 'Network error'
+    }
+  }, [])
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY)
     setUser(null)
@@ -124,6 +158,8 @@ export function useAuth() {
     isLoggedIn: !!user,
     sessionExpired,
     login,
+    loginWithEmail,
+    register,
     logout,
     dismissExpired,
   }

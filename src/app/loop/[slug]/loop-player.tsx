@@ -46,7 +46,7 @@ export default function LoopPlayer({ videoId }: { videoId: string }) {
   const [duration, setDuration] = useState(0)
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const { upsert } = useLoopHistory()
+  const { upsert } = useLoopHistory(false)
 
   useEffect(() => {
     if (window.YT && window.YT.Player) {

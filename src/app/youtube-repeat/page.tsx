@@ -70,7 +70,7 @@ export default function YoutubeRepeatPage() {
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const timeUpdateRef = useRef<NodeJS.Timeout | null>(null)
-  const { upsert } = useLoopHistory()
+  const { upsert } = useLoopHistory(false)
 
   useEffect(() => {
     if (window.YT && window.YT.Player) { setApiReady(true); return }

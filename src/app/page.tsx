@@ -51,6 +51,7 @@ import { Kbd } from '@/components/ui/kbd'
 import { useLoopHistory } from '@/lib/use-loop-history'
 import { usePlaylists } from '@/lib/use-playlists'
 import { useFolders } from '@/lib/use-folders'
+import { useAuth, getAuthToken, isMigrated, setMigrated, trigger401 } from '@/lib/use-auth'
 import {
   DragDropContext,
   Droppable,
@@ -178,6 +179,8 @@ export default function Home() {
   const [featureText, setFeatureText] = useState('')
   const [featureSubmitting, setFeatureSubmitting] = useState(false)
   const [featureSubmitted, setFeatureSubmitted] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const urlInputRef = useRef<HTMLInputElement>(null)
@@ -185,25 +188,94 @@ export default function Home() {
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef('')
   const endTimeRef = useRef('')
-  const { history, upsert, remove, clear } = useLoopHistory()
+  const { user, isLoggedIn, sessionExpired, login, logout, dismissExpired } = useAuth()
+  const { history, setHistory, flushSync: flushHistory, upsert, remove, clear } = useLoopHistory(isLoggedIn)
   const {
     playlists,
+    setPlaylists,
+    flushSync: flushPlaylists,
     createPlaylist,
     deletePlaylist,
     addToPlaylist,
     removeFromPlaylist,
     reorderPlaylists,
     setPlaylistEmoji,
-  } = usePlaylists()
+  } = usePlaylists(isLoggedIn)
   const {
     folders,
+    setFolders,
+    flushSync: flushFolders,
     createFolder,
     deleteFolder,
     moveToFolder,
     reorderFolderPlaylists,
     reorderFolders,
     setFolderEmoji,
-  } = useFolders()
+  } = useFolders(isLoggedIn)
+
+  const API_URL_SYNC = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+    const token = getAuthToken()
+
+    if (!isMigrated()) {
+      const localPlaylists = JSON.parse(localStorage.getItem('yol-playlists') || '[]')
+      const localFolders = JSON.parse(localStorage.getItem('yol-folders') || '[]')
+      const localHistory = JSON.parse(localStorage.getItem('yol-loop-history') || '[]')
+      const hasLocal = localPlaylists.length || localFolders.length || localHistory.length
+
+      if (hasLocal) {
+        setSyncing(true)
+        Promise.all([
+          fetch(`${API_URL_SYNC}/yol/sync/playlists`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: localPlaylists }) }),
+          fetch(`${API_URL_SYNC}/yol/sync/folders`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: localFolders }) }),
+          fetch(`${API_URL_SYNC}/yol/sync/history`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: localHistory }) }),
+        ]).then((responses) => {
+          if (responses.every((r) => r.ok)) {
+            localStorage.removeItem('yol-playlists')
+            localStorage.removeItem('yol-folders')
+            localStorage.removeItem('yol-loop-history')
+            setMigrated()
+            setPlaylists(localPlaylists)
+            setFolders(localFolders)
+            setHistory(localHistory)
+          } else {
+            setSyncError('Sync failed — your data is safe locally, try signing in again')
+          }
+        }).catch(() => {
+          setSyncError('Sync failed — your data is safe locally, try signing in again')
+        }).finally(() => setSyncing(false))
+        return
+      }
+    }
+
+    setSyncing(true)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+
+    fetch(`${API_URL_SYNC}/yol/sync/all`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
+      .then((r) => {
+        if (r.status === 401) { trigger401(); return null }
+        return r.json()
+      })
+      .then((data) => {
+        if (!data) return
+        setPlaylists(data.playlists ?? [])
+        setFolders(data.folders ?? [])
+        setHistory(data.history ?? [])
+        setMigrated()
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') setSyncError('Failed to load — check your connection')
+      })
+      .finally(() => { clearTimeout(timeout); setSyncing(false) })
+
+    return () => controller.abort()
+  }, [isLoggedIn])
 
   // Keep refs in sync so callbacks never stale-close over startTime/endTime
   useEffect(() => {
@@ -471,6 +543,36 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#FFF2EB] bg-[linear-gradient(to_right,#FFD6BA33_1px,transparent_1px),linear-gradient(to_bottom,#FFD6BA33_1px,transparent_1px)] bg-[size:45px_45px]">
+      {syncing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80">
+          <div className="flex flex-col items-center gap-3 rounded-base border-4 border-black bg-white p-8 shadow-base">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="font-heading text-sm">Loading your data…</p>
+          </div>
+        </div>
+      )}
+      {sessionExpired && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="flex flex-col items-center gap-4 rounded-base border-4 border-black bg-white p-8 shadow-base">
+            <p className="font-heading text-lg">Session expired</p>
+            <p className="text-sm text-stone-500">Please sign in again to keep syncing.</p>
+            <div className="flex gap-2">
+              <button onClick={dismissExpired} className="rounded-xl border-2 border-black px-4 py-2 text-sm font-bold hover:bg-bg">
+                Stay offline
+              </button>
+              <button onClick={login} className="rounded-xl border-2 border-black bg-main px-4 py-2 text-sm font-bold hover:opacity-90">
+                Sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {syncError && (
+        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl border-2 border-black bg-red-100 px-4 py-3 text-sm font-bold shadow-base">
+          {syncError}
+          <button onClick={() => setSyncError(null)} className="ml-3 text-stone-400 hover:text-black">✕</button>
+        </div>
+      )}
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -517,6 +619,16 @@ export default function Home() {
               upsert(vId, 0, title)
             }}
             onRemove={remove}
+            isLoggedIn={isLoggedIn}
+            user={user}
+            login={login}
+            logout={logout}
+            flushPlaylists={flushPlaylists}
+            flushFolders={flushFolders}
+            flushHistory={flushHistory}
+            setPlaylists={setPlaylists}
+            setFolders={setFolders}
+            setHistory={setHistory}
           />
         </div>
       </aside>
@@ -550,6 +662,16 @@ export default function Home() {
               upsert(vId, 0, title)
             }}
             onRemove={remove}
+            isLoggedIn={isLoggedIn}
+            user={user}
+            login={login}
+            logout={logout}
+            flushPlaylists={flushPlaylists}
+            flushFolders={flushFolders}
+            flushHistory={flushHistory}
+            setPlaylists={setPlaylists}
+            setFolders={setFolders}
+            setHistory={setHistory}
           />
         </aside>
 
@@ -1364,6 +1486,16 @@ function LibrarySidebar({
   clear,
   onPlay,
   onRemove,
+  isLoggedIn,
+  user,
+  login,
+  logout,
+  flushPlaylists,
+  flushFolders,
+  flushHistory,
+  setPlaylists,
+  setFolders,
+  setHistory,
 }: {
   playlists: ReturnType<
     typeof import('@/lib/use-playlists').usePlaylists
@@ -1386,6 +1518,16 @@ function LibrarySidebar({
   clear: () => void
   onPlay: (videoId: string, title?: string) => void
   onRemove: (videoId: string) => void
+  isLoggedIn: boolean
+  user: import('@/lib/use-auth').AuthUser | null
+  login: () => void
+  logout: () => void
+  flushPlaylists: () => void
+  flushFolders: () => void
+  flushHistory: () => void
+  setPlaylists: (data: ReturnType<typeof import('@/lib/use-playlists').usePlaylists>['playlists']) => void
+  setFolders: (data: ReturnType<typeof import('@/lib/use-folders').useFolders>['folders']) => void
+  setHistory: (data: ReturnType<typeof import('@/lib/use-loop-history').useLoopHistory>['history']) => void
 }) {
   // local UI state
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
@@ -1425,20 +1567,11 @@ function LibrarySidebar({
     })
 
   const handleExport = () => {
-    const data = {
-      exportedAt: new Date().toISOString(),
-      playlists,
-      history,
-      folders,
-    }
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: 'application/json',
-    })
+    const data = { exportedAt: new Date().toISOString(), playlists, history, folders }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url
-    a.download = `yol-data-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
+    a.href = url; a.download = 'yol-data.json'; a.click()
     URL.revokeObjectURL(url)
   }
 
@@ -1463,6 +1596,30 @@ function LibrarySidebar({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Auth */}
+      <div className="px-3 pt-2">
+        {isLoggedIn ? (
+          <div className="flex items-center gap-2 px-1 mb-2">
+            {user?.avatar_url && (
+              <img src={user.avatar_url} alt={user.name} className="w-7 h-7 rounded-full border-2 border-black flex-shrink-0" />
+            )}
+            <span className="text-xs font-bold truncate flex-1">{user?.name}</span>
+            <button
+              onClick={() => { flushPlaylists(); flushFolders(); flushHistory(); logout() }}
+              className="text-xs font-bold text-stone-400 hover:text-black whitespace-nowrap"
+            >
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={login}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-white py-2 text-xs font-bold transition-all hover:bg-main hover:text-black active:translate-x-[1px] active:translate-y-[1px] mb-2"
+          >
+            Sign in with Google
+          </button>
+        )}
+      </div>
       <Tabs
         defaultValue="playlists"
         className="flex flex-1 flex-col overflow-hidden"
@@ -2125,23 +2282,39 @@ function LibrarySidebar({
                       const file = e.target.files?.[0]
                       if (!file) return
                       const reader = new FileReader()
-                      reader.onload = (ev) => {
+                      reader.onload = async (ev) => {
                         try {
-                          const data = JSON.parse(ev.target?.result as string)
-                          if (data.playlists)
+                          const parsed = JSON.parse(ev.target?.result as string)
+                          if (isLoggedIn) {
+                            const confirmed = window.confirm('This will replace all your synced data. Continue?')
+                            if (!confirmed) return
+                            const token = getAuthToken()
+                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+                            await Promise.all([
+                              fetch(`${apiUrl}/yol/sync/playlists`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.playlists ?? [] }) }),
+                              fetch(`${apiUrl}/yol/sync/folders`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.folders ?? [] }) }),
+                              fetch(`${apiUrl}/yol/sync/history`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.history ?? [] }) }),
+                            ])
+                            setPlaylists(parsed.playlists ?? [])
+                            setFolders(parsed.folders ?? [])
+                            setHistory(parsed.history ?? [])
+                            window.location.reload()
+                            return
+                          }
+                          if (parsed.playlists)
                             localStorage.setItem(
                               'yol-playlists',
-                              JSON.stringify(data.playlists),
+                              JSON.stringify(parsed.playlists),
                             )
-                          if (data.history)
+                          if (parsed.history)
                             localStorage.setItem(
                               'yol-loop-history',
-                              JSON.stringify(data.history),
+                              JSON.stringify(parsed.history),
                             )
-                          if (data.folders)
+                          if (parsed.folders)
                             localStorage.setItem(
                               'yol-folders',
-                              JSON.stringify(data.folders),
+                              JSON.stringify(parsed.folders),
                             )
                           window.location.reload()
                         } catch {

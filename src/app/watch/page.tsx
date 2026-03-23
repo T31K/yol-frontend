@@ -86,7 +86,7 @@ function WatchContent() {
   const [duration, setDuration] = useState(0)
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const { upsert } = useLoopHistory()
+  const { upsert } = useLoopHistory(false)
 
   // Load YouTube IFrame API
   useEffect(() => {

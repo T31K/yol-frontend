@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -1471,102 +1472,6 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-// ── Auth panel ────────────────────────────────────────────────────────────────
-function AuthPanel({
-  isLoggedIn,
-  user,
-  loginWithEmail,
-  register,
-  logout,
-}: {
-  isLoggedIn: boolean
-  user: import('@/lib/use-auth').AuthUser | null
-  loginWithEmail: (email: string, password: string) => Promise<string | null>
-  register: (email: string, password: string) => Promise<string | null>
-  logout: () => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-    const err = mode === 'login'
-      ? await loginWithEmail(email, password)
-      : await register(email, password)
-    setLoading(false)
-    if (err) { setError(err); return }
-    setOpen(false)
-    setEmail(''); setPassword('')
-  }
-
-  if (isLoggedIn) {
-    return (
-      <div className="flex items-center gap-2 px-4 py-2 border-b-2 border-black">
-        {user?.avatar_url && (
-          <img src={user.avatar_url} alt={user.name} className="w-6 h-6 rounded-full border-2 border-black flex-shrink-0" />
-        )}
-        <span className="text-xs font-bold truncate flex-1">{user?.name || user?.email}</span>
-        <button onClick={logout} className="text-xs text-stone-400 hover:text-black font-bold whitespace-nowrap">
-          Sign out
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="border-b-2 border-black">
-      {!open ? (
-        <button
-          onClick={() => setOpen(true)}
-          className="flex w-full items-center justify-center gap-1.5 py-2 text-xs font-bold text-stone-500 hover:bg-main hover:text-black transition-all"
-        >
-          Sign in / Register
-        </button>
-      ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2 p-3">
-          <div className="flex gap-1 mb-1">
-            <button type="button" onClick={() => setMode('login')}
-              className={`flex-1 rounded-lg border-2 border-black py-1 text-xs font-bold transition-all ${mode === 'login' ? 'bg-main' : 'bg-white hover:bg-bg'}`}>
-              Sign in
-            </button>
-            <button type="button" onClick={() => setMode('register')}
-              className={`flex-1 rounded-lg border-2 border-black py-1 text-xs font-bold transition-all ${mode === 'register' ? 'bg-main' : 'bg-white hover:bg-bg'}`}>
-              Register
-            </button>
-          </div>
-          <input
-            type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email" required autoFocus
-            className="rounded-lg border-2 border-black px-2 py-1.5 text-xs focus:outline-none"
-          />
-          <input
-            type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password" required minLength={6}
-            className="rounded-lg border-2 border-black px-2 py-1.5 text-xs focus:outline-none"
-          />
-          {error && <p className="text-xs text-red-600 font-bold">{error}</p>}
-          <div className="flex gap-1">
-            <button type="button" onClick={() => { setOpen(false); setError(null); setEmail(''); setPassword('') }}
-              className="flex-1 rounded-lg border-2 border-black py-1.5 text-xs font-bold hover:bg-bg">
-              Cancel
-            </button>
-            <button type="submit" disabled={loading}
-              className="flex-1 rounded-lg border-2 border-black bg-main py-1.5 text-xs font-bold hover:opacity-90 disabled:opacity-50">
-              {loading ? '…' : mode === 'login' ? 'Sign in' : 'Register'}
-            </button>
-          </div>
-        </form>
-      )}
-    </div>
-  )
-}
-
 // ── Shared sidebar content component ─────────────────────────────────────────
 function LibrarySidebar({
   playlists,
@@ -1700,14 +1605,6 @@ function LibrarySidebar({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Auth */}
-      <AuthPanel
-        isLoggedIn={isLoggedIn}
-        user={user}
-        loginWithEmail={loginWithEmail}
-        register={register}
-        logout={() => { flushPlaylists(); flushFolders(); flushHistory(); logout() }}
-      />
       <Tabs
         defaultValue="playlists"
         className="flex flex-1 flex-col overflow-hidden"
@@ -2291,136 +2188,222 @@ function LibrarySidebar({
       </Tabs>
 
       {/* Import / Export — fixed at bottom */}
-      <div className="border-t-2 border-black p-2">
-        <Dialog>
-          <DialogTrigger asChild>
-            <button className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-white py-2 text-xs font-bold text-stone-600 transition-all hover:bg-main hover:text-black active:translate-x-[1px] active:translate-y-[1px]">
-              <Download className="h-3.5 w-3.5" />
-              Import / Export data
-            </button>
-          </DialogTrigger>
-          <DialogContent
-            className="rounded-2xl border-2 border-black bg-white shadow-none sm:max-w-xs"
-            onCloseAutoFocus={() => setDialogStep('choose')}
-          >
-            <DialogHeader>
-              <DialogTitle className="text-lg font-bold">
-                {dialogStep === 'choose' && 'Transfer Data'}
-                {dialogStep === 'export' && (
-                  <button
-                    onClick={() => setDialogStep('choose')}
-                    className="flex items-center gap-1 text-stone-400 hover:text-black"
-                  >
-                    ← Export
-                  </button>
-                )}
-                {dialogStep === 'import' && (
-                  <button
-                    onClick={() => setDialogStep('choose')}
-                    className="flex items-center gap-1 text-stone-400 hover:text-black"
-                  >
-                    ← Import
-                  </button>
-                )}
-              </DialogTitle>
-            </DialogHeader>
-            {dialogStep === 'choose' && (
-              <div className="flex flex-col gap-2 pt-1">
-                <button
-                  onClick={() => setDialogStep('export')}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-black py-3 text-sm font-bold transition-all hover:bg-main active:translate-x-[1px] active:translate-y-[1px]"
-                >
-                  <Download className="h-4 w-4" /> Export
-                </button>
-                <button
-                  onClick={() => setDialogStep('import')}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-black py-3 text-sm font-bold transition-all hover:bg-main active:translate-x-[1px] active:translate-y-[1px]"
-                >
-                  <Upload className="h-4 w-4" /> Import
-                </button>
-              </div>
-            )}
-            {dialogStep === 'export' && (
-              <div className="flex flex-col gap-3 pt-1">
-                <p className="text-xs text-stone-500">
-                  Download all your playlists, folders, and history as a JSON
-                  file.
-                </p>
-                <button
-                  onClick={handleExport}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-black py-3 text-sm font-bold transition-all hover:bg-main active:translate-x-[1px] active:translate-y-[1px]"
-                >
-                  <Download className="h-4 w-4" /> Download yol-data.json
-                </button>
-              </div>
-            )}
-            {dialogStep === 'import' && (
-              <div className="flex flex-col gap-3 pt-1">
-                <p className="text-xs text-stone-500">
-                  Restore from a previously exported yol-data.json. This will
-                  overwrite your current data.
-                </p>
-                <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-black py-3 text-sm font-bold transition-all hover:bg-main active:translate-x-[1px] active:translate-y-[1px]">
-                  <Upload className="h-4 w-4" /> Choose file…
-                  <input
-                    type="file"
-                    accept=".json"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      const reader = new FileReader()
-                      reader.onload = async (ev) => {
-                        try {
-                          const parsed = JSON.parse(ev.target?.result as string)
-                          if (isLoggedIn) {
-                            const confirmed = window.confirm('This will replace all your synced data. Continue?')
-                            if (!confirmed) return
-                            const token = getAuthToken()
-                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-                            await Promise.all([
-                              fetch(`${apiUrl}/yol/sync/playlists`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.playlists ?? [] }) }),
-                              fetch(`${apiUrl}/yol/sync/folders`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.folders ?? [] }) }),
-                              fetch(`${apiUrl}/yol/sync/history`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.history ?? [] }) }),
-                            ])
-                            setPlaylists(parsed.playlists ?? [])
-                            setFolders(parsed.folders ?? [])
-                            setHistory(parsed.history ?? [])
-                            window.location.reload()
-                            return
-                          }
-                          if (parsed.playlists)
-                            localStorage.setItem(
-                              'yol-playlists',
-                              JSON.stringify(parsed.playlists),
-                            )
-                          if (parsed.history)
-                            localStorage.setItem(
-                              'yol-loop-history',
-                              JSON.stringify(parsed.history),
-                            )
-                          if (parsed.folders)
-                            localStorage.setItem(
-                              'yol-folders',
-                              JSON.stringify(parsed.folders),
-                            )
-                          window.location.reload()
-                        } catch {
-                          alert(
-                            'Invalid file. Please use a yol-data.json export.',
-                          )
-                        }
-                      }
-                      reader.readAsText(file)
-                    }}
-                  />
-                </label>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
+      <SidebarMenu
+        isLoggedIn={isLoggedIn}
+        user={user}
+        loginWithEmail={loginWithEmail}
+        register={register}
+        logout={() => { flushPlaylists(); flushFolders(); flushHistory(); logout() }}
+        onExport={handleExport}
+        onImport={(file) => {
+          const reader = new FileReader()
+          reader.onload = async (ev) => {
+            try {
+              const parsed = JSON.parse(ev.target?.result as string)
+              if (isLoggedIn) {
+                const confirmed = window.confirm('This will replace all your synced data. Continue?')
+                if (!confirmed) return
+                const token = getAuthToken()
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+                await Promise.all([
+                  fetch(`${apiUrl}/yol/sync/playlists`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.playlists ?? [] }) }),
+                  fetch(`${apiUrl}/yol/sync/folders`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.folders ?? [] }) }),
+                  fetch(`${apiUrl}/yol/sync/history`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.history ?? [] }) }),
+                ])
+                setPlaylists(parsed.playlists ?? [])
+                setFolders(parsed.folders ?? [])
+                setHistory(parsed.history ?? [])
+                window.location.reload()
+                return
+              }
+              if (parsed.playlists) localStorage.setItem('yol-playlists', JSON.stringify(parsed.playlists))
+              if (parsed.history) localStorage.setItem('yol-loop-history', JSON.stringify(parsed.history))
+              if (parsed.folders) localStorage.setItem('yol-folders', JSON.stringify(parsed.folders))
+              window.location.reload()
+            } catch {
+              alert('Invalid file. Please use a yol-data.json export.')
+            }
+          }
+          reader.readAsText(file)
+        }}
+      />
     </div>
+  )
+}
+
+// ── Sidebar menu — single button → dropdown to the right ─────────────────────
+function SidebarMenu({
+  isLoggedIn,
+  user,
+  loginWithEmail,
+  register,
+  logout,
+  onExport,
+  onImport,
+}: {
+  isLoggedIn: boolean
+  user: import('@/lib/use-auth').AuthUser | null
+  loginWithEmail: (email: string, password: string) => Promise<string | null>
+  register: (email: string, password: string) => Promise<string | null>
+  logout: () => void
+  onExport: () => void
+  onImport: (file: File) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [authOpen, setAuthOpen] = useState(false)
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const dropRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (!dropRef.current?.contains(e.target as Node) && !btnRef.current?.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const handleToggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setPos({ top: rect.top, left: rect.right + 8 })
+    }
+    setOpen((v) => !v)
+  }
+
+  async function handleAuthSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    const err = authMode === 'login'
+      ? await loginWithEmail(email, password)
+      : await register(email, password)
+    setLoading(false)
+    if (err) { setError(err); return }
+    setAuthOpen(false)
+    setOpen(false)
+    setEmail(''); setPassword('')
+  }
+
+  return (
+    <>
+      <div className="border-t-2 border-black p-2">
+        <button
+          ref={btnRef}
+          onClick={handleToggle}
+          className="flex w-full items-center justify-between rounded-xl border-2 border-black px-3 py-2 text-xs font-bold hover:bg-main transition-all"
+        >
+          <span className="truncate">
+            {isLoggedIn ? (user?.name || user?.email || 'Account') : 'Menu'}
+          </span>
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 ml-1" />
+        </button>
+      </div>
+
+      {open && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropRef}
+          style={{ top: pos.top, left: pos.left }}
+          className="fixed z-50 w-56 rounded-2xl border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        >
+          {/* Auth section */}
+          {isLoggedIn ? (
+            <div className="p-3 border-b-2 border-black">
+              <div className="flex items-center gap-2 mb-2.5">
+                {user?.avatar_url && (
+                  <img src={user.avatar_url} alt={user.name} className="w-7 h-7 rounded-full border-2 border-black shrink-0" />
+                )}
+                <span className="text-xs font-bold truncate">{user?.name || user?.email}</span>
+              </div>
+              <button
+                onClick={() => { logout(); setOpen(false) }}
+                className="w-full rounded-xl border-2 border-black px-2 py-1.5 text-xs font-bold hover:bg-bg transition-all"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <div className="p-3 border-b-2 border-black">
+              <Dialog open={authOpen} onOpenChange={(v) => { setAuthOpen(v); if (!v) { setError(null); setEmail(''); setPassword('') } }}>
+                <DialogTrigger asChild>
+                  <button className="w-full rounded-xl border-2 border-black bg-main px-2 py-1.5 text-xs font-bold hover:opacity-90 transition-all">
+                    Sign in / Register
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="max-w-xs">
+                  <DialogHeader>
+                    <DialogTitle>{authMode === 'login' ? 'Sign in' : 'Create account'}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleAuthSubmit} className="flex flex-col gap-3 pt-1">
+                    <div className="flex gap-1">
+                      <button type="button" onClick={() => setAuthMode('login')}
+                        className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'login' ? 'bg-main' : 'hover:bg-bg'}`}>
+                        Sign in
+                      </button>
+                      <button type="button" onClick={() => setAuthMode('register')}
+                        className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'register' ? 'bg-main' : 'hover:bg-bg'}`}>
+                        Register
+                      </button>
+                    </div>
+                    <input
+                      type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email" required autoFocus
+                      className="rounded-xl border-2 border-black px-3 py-2 text-sm focus:outline-none"
+                    />
+                    <input
+                      type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Password (min 6 chars)" required minLength={6}
+                      className="rounded-xl border-2 border-black px-3 py-2 text-sm focus:outline-none"
+                    />
+                    {error && <p className="text-xs text-red-600 font-bold">{error}</p>}
+                    <button type="submit" disabled={loading}
+                      className="rounded-xl border-2 border-black bg-main py-2 text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-all">
+                      {loading ? '…' : authMode === 'login' ? 'Sign in' : 'Create account'}
+                    </button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
+
+          {/* Data section */}
+          <div className="p-3 flex flex-col gap-2">
+            <button
+              onClick={() => { onExport(); setOpen(false) }}
+              className="flex w-full items-center gap-2 rounded-xl border-2 border-black px-3 py-2 text-xs font-bold hover:bg-bg transition-all"
+            >
+              <Download className="h-3.5 w-3.5 shrink-0" />
+              Export data
+            </button>
+            <label className="flex w-full cursor-pointer items-center gap-2 rounded-xl border-2 border-black px-3 py-2 text-xs font-bold hover:bg-bg transition-all">
+              <Upload className="h-3.5 w-3.5 shrink-0" />
+              Import data
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) { onImport(f); setOpen(false) }
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
 

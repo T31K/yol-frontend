@@ -1596,9 +1596,9 @@ function LibrarySidebar({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Auth */}
-      <div className="px-3 pt-2">
-        {isLoggedIn ? (
+      {/* Auth — hidden until OAuth is ready */}
+      {isLoggedIn && (
+        <div className="px-3 pt-2">
           <div className="flex items-center gap-2 px-1 mb-2">
             {user?.avatar_url && (
               <img src={user.avatar_url} alt={user.name} className="w-7 h-7 rounded-full border-2 border-black flex-shrink-0" />
@@ -1611,15 +1611,8 @@ function LibrarySidebar({
               Sign out
             </button>
           </div>
-        ) : (
-          <button
-            onClick={login}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-white py-2 text-xs font-bold transition-all hover:bg-main hover:text-black active:translate-x-[1px] active:translate-y-[1px] mb-2"
-          >
-            Sign in with Google
-          </button>
-        )}
-      </div>
+        </div>
+      )}
       <Tabs
         defaultValue="playlists"
         className="flex flex-1 flex-col overflow-hidden"

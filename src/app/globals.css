@@ -8,8 +8,110 @@
   box-sizing: border-box;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
 
 
+
+
+@keyframes wave {
+  0%, 100% { transform: rotate(-15deg); }
+  50%       { transform: rotate(15deg); }
+}
+.animate-wave {
+  animation: wave 1s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+/* ── Dark mode overrides ──────────────────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+}
+
+/* Page background */
+.dark .min-h-screen {
+  background-color: #1F1D36 !important;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px) !important;
+}
+
+/* White surfaces */
+.dark .bg-white {
+  background-color: #3F3351 !important;
+}
+
+/* bg-bg hover */
+.dark .bg-bg,
+.dark .hover\:bg-bg:hover {
+  background-color: #2e2a42 !important;
+}
+
+/* bg-main accent → blush pink */
+.dark .bg-main {
+  background-color: #E9A6A6 !important;
+}
+.dark .hover\:bg-main:hover {
+  background-color: #E9A6A6 !important;
+}
+
+/* Borders */
+.dark .border-black {
+  border-color: #864879 !important;
+}
+.dark .border-stone-300 {
+  border-color: #3F3351 !important;
+}
+.dark .border-stone-200 {
+  border-color: #2e2a42 !important;
+}
+
+/* Shadows */
+.dark .shadow-\[2px_2px_0px_0px_rgba\(0\,0\,0\,1\)\] {
+  box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.5) !important;
+}
+.dark .shadow-\[4px_4px_0px_0px_rgba\(0\,0\,0\,1\)\] {
+  box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.5) !important;
+}
+
+/* Text */
+.dark .text-black     { color: #f5eaea !important; }
+.dark .text-stone-700 { color: #e8d4d4 !important; }
+.dark .text-stone-600 { color: #d4b8b8 !important; }
+.dark .text-stone-500 { color: #E9A6A6 !important; }
+.dark .text-stone-400 { color: #a07070 !important; }
+.dark .text-stone-300 { color: #6a4a6a !important; }
+
+/* Hover bg */
+.dark .hover\:bg-stone-100:hover { background-color: #2e2a42 !important; }
+.dark .bg-stone-100 { background-color: #17152a !important; }
+.dark .bg-stone-50  { background-color: #2e2a42 !important; }
+
+/* Input fields */
+.dark input, .dark textarea {
+  background-color: transparent !important;
+  color: #f5eaea !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #a07070 !important;
+}
+.dark .placeholder-stone-400::placeholder {
+  color: #9b8aaa !important;
+}
+
+/* Footer */
+.dark footer {
+  background-color: #17152a !important;
+  border-color: #864879 !important;
+}
+
+/* Tabs */
+.dark [class*="bg-stone-800"],
+.dark [class*="bg-stone-900"] {
+  background-color: #17152a !important;
+}
 
 @layer base {
   :root {

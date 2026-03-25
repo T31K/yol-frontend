@@ -32,6 +32,7 @@ import {
   Search,
   Loader2,
   ListMusic,
+  ListPlus,
   Plus,
   ChevronDown,
   ChevronRight,
@@ -43,6 +44,13 @@ import {
   NotebookPen,
   Check,
   Lightbulb,
+  HelpCircle,
+  LogOut,
+  User,
+  Settings,
+  Moon,
+  Sun,
+  Hand,
 } from 'lucide-react'
 import Image from 'next/image'
 import { NoteEditor } from '@/components/NoteEditor'
@@ -52,7 +60,13 @@ import { Kbd } from '@/components/ui/kbd'
 import { useLoopHistory } from '@/lib/use-loop-history'
 import { usePlaylists } from '@/lib/use-playlists'
 import { useFolders } from '@/lib/use-folders'
-import { useAuth, getAuthToken, isMigrated, setMigrated, trigger401 } from '@/lib/use-auth'
+import {
+  useAuth,
+  getAuthToken,
+  isMigrated,
+  setMigrated,
+  trigger401,
+} from '@/lib/use-auth'
 import {
   DragDropContext,
   Droppable,
@@ -142,6 +156,25 @@ const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 export default function Home() {
+  const [darkMode, setDarkMode] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('yol-dark')
+    if (stored === '1') {
+      setDarkMode(true)
+      document.documentElement.classList.add('dark')
+    }
+  }, [])
+
+  const toggleDark = useCallback(() => {
+    setDarkMode((prev) => {
+      const next = !prev
+      document.documentElement.classList.toggle('dark', next)
+      localStorage.setItem('yol-dark', next ? '1' : '0')
+      return next
+    })
+  }, [])
+
   const [url, setUrl] = useState('')
   const [videoId, setVideoId] = useState<string | null>(null)
   const [notes, setNotes] = useState<Record<string, string>>({})
@@ -174,6 +207,8 @@ export default function Home() {
   const [duration, setDuration] = useState(0)
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+  const [addToPlaylistTarget, setAddToPlaylistTarget] =
+    useState<SearchResult | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [featureOpen, setFeatureOpen] = useState(false)
@@ -189,8 +224,24 @@ export default function Home() {
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef('')
   const endTimeRef = useRef('')
-  const { user, isLoggedIn, sessionExpired, login, loginWithEmail, register, logout, dismissExpired } = useAuth()
-  const { history, setHistory, flushSync: flushHistory, upsert, remove, clear } = useLoopHistory(isLoggedIn)
+  const {
+    user,
+    isLoggedIn,
+    sessionExpired,
+    login,
+    loginWithEmail,
+    register,
+    logout,
+    dismissExpired,
+  } = useAuth()
+  const {
+    history,
+    setHistory,
+    flushSync: flushHistory,
+    upsert,
+    remove,
+    clear,
+  } = useLoopHistory(isLoggedIn)
   const {
     playlists,
     setPlaylists,
@@ -214,39 +265,75 @@ export default function Home() {
     setFolderEmoji,
   } = useFolders(isLoggedIn)
 
-  const API_URL_SYNC = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+  const API_URL_SYNC =
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
   useEffect(() => {
     if (!isLoggedIn) return
     const token = getAuthToken()
 
     if (!isMigrated()) {
-      const localPlaylists = JSON.parse(localStorage.getItem('yol-playlists') || '[]')
-      const localFolders = JSON.parse(localStorage.getItem('yol-folders') || '[]')
-      const localHistory = JSON.parse(localStorage.getItem('yol-loop-history') || '[]')
-      const hasLocal = localPlaylists.length || localFolders.length || localHistory.length
+      const localPlaylists = JSON.parse(
+        localStorage.getItem('yol-playlists') || '[]',
+      )
+      const localFolders = JSON.parse(
+        localStorage.getItem('yol-folders') || '[]',
+      )
+      const localHistory = JSON.parse(
+        localStorage.getItem('yol-loop-history') || '[]',
+      )
+      const hasLocal =
+        localPlaylists.length || localFolders.length || localHistory.length
 
       if (hasLocal) {
         setSyncing(true)
         Promise.all([
-          fetch(`${API_URL_SYNC}/yol/sync/playlists`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: localPlaylists }) }),
-          fetch(`${API_URL_SYNC}/yol/sync/folders`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: localFolders }) }),
-          fetch(`${API_URL_SYNC}/yol/sync/history`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: localHistory }) }),
-        ]).then((responses) => {
-          if (responses.every((r) => r.ok)) {
-            localStorage.removeItem('yol-playlists')
-            localStorage.removeItem('yol-folders')
-            localStorage.removeItem('yol-loop-history')
-            setMigrated()
-            setPlaylists(localPlaylists)
-            setFolders(localFolders)
-            setHistory(localHistory)
-          } else {
-            setSyncError('Sync failed — your data is safe locally, try signing in again')
-          }
-        }).catch(() => {
-          setSyncError('Sync failed — your data is safe locally, try signing in again')
-        }).finally(() => setSyncing(false))
+          fetch(`${API_URL_SYNC}/yol/sync/playlists`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ data: localPlaylists }),
+          }),
+          fetch(`${API_URL_SYNC}/yol/sync/folders`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ data: localFolders }),
+          }),
+          fetch(`${API_URL_SYNC}/yol/sync/history`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ data: localHistory }),
+          }),
+        ])
+          .then((responses) => {
+            if (responses.every((r) => r.ok)) {
+              localStorage.removeItem('yol-playlists')
+              localStorage.removeItem('yol-folders')
+              localStorage.removeItem('yol-loop-history')
+              setMigrated()
+              setPlaylists(localPlaylists)
+              setFolders(localFolders)
+              setHistory(localHistory)
+            } else {
+              setSyncError(
+                'Sync failed — your data is safe locally, try signing in again',
+              )
+            }
+          })
+          .catch(() => {
+            setSyncError(
+              'Sync failed — your data is safe locally, try signing in again',
+            )
+          })
+          .finally(() => setSyncing(false))
         return
       }
     }
@@ -260,7 +347,10 @@ export default function Home() {
       signal: controller.signal,
     })
       .then((r) => {
-        if (r.status === 401) { trigger401(); return null }
+        if (r.status === 401) {
+          trigger401()
+          return null
+        }
         return r.json()
       })
       .then((data) => {
@@ -271,9 +361,13 @@ export default function Home() {
         setMigrated()
       })
       .catch((err) => {
-        if (err.name !== 'AbortError') setSyncError('Failed to load — check your connection')
+        if (err.name !== 'AbortError')
+          setSyncError('Failed to load — check your connection')
       })
-      .finally(() => { clearTimeout(timeout); setSyncing(false) })
+      .finally(() => {
+        clearTimeout(timeout)
+        setSyncing(false)
+      })
 
     return () => controller.abort()
   }, [isLoggedIn])
@@ -542,26 +636,117 @@ export default function Home() {
       .toString()
       .padStart(2, '0')}`
 
+  const handleExport = () => {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      playlists,
+      history,
+      folders,
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'yol-data.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImport = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string)
+        if (isLoggedIn) {
+          const confirmed = window.confirm(
+            'This will replace all your synced data. Continue?',
+          )
+          if (!confirmed) return
+          const token = getAuthToken()
+          const apiUrl =
+            process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+          await Promise.all([
+            fetch(`${apiUrl}/yol/sync/playlists`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ data: parsed.playlists ?? [] }),
+            }),
+            fetch(`${apiUrl}/yol/sync/folders`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ data: parsed.folders ?? [] }),
+            }),
+            fetch(`${apiUrl}/yol/sync/history`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ data: parsed.history ?? [] }),
+            }),
+          ])
+          setPlaylists(parsed.playlists ?? [])
+          setFolders(parsed.folders ?? [])
+          setHistory(parsed.history ?? [])
+          window.location.reload()
+          return
+        }
+        if (parsed.playlists)
+          localStorage.setItem(
+            'yol-playlists',
+            JSON.stringify(parsed.playlists),
+          )
+        if (parsed.history)
+          localStorage.setItem(
+            'yol-loop-history',
+            JSON.stringify(parsed.history),
+          )
+        if (parsed.folders)
+          localStorage.setItem('yol-folders', JSON.stringify(parsed.folders))
+        window.location.reload()
+      } catch {
+        alert('Invalid file. Please use a yol-data.json export.')
+      }
+    }
+    reader.readAsText(file)
+  }
+
   return (
     <div className="min-h-screen bg-[#FFF2EB] bg-[linear-gradient(to_right,#FFD6BA33_1px,transparent_1px),linear-gradient(to_bottom,#FFD6BA33_1px,transparent_1px)] bg-[size:45px_45px]">
       {syncing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80">
           <div className="flex flex-col items-center gap-3 rounded-base border-4 border-black bg-white p-8 shadow-base">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="font-heading text-sm">Loading your data…</p>
+            <p className="text-sm font-heading">Loading your data…</p>
           </div>
         </div>
       )}
       {sessionExpired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="flex flex-col items-center gap-4 rounded-base border-4 border-black bg-white p-8 shadow-base">
-            <p className="font-heading text-lg">Session expired</p>
-            <p className="text-sm text-stone-500">Please sign in again to keep syncing.</p>
+            <p className="text-lg font-heading">Session expired</p>
+            <p className="text-sm text-stone-500">
+              Please sign in again to keep syncing.
+            </p>
             <div className="flex gap-2">
-              <button onClick={dismissExpired} className="rounded-xl border-2 border-black px-4 py-2 text-sm font-bold hover:bg-bg">
+              <button
+                onClick={dismissExpired}
+                className="rounded-xl border-2 border-black px-4 py-2 text-sm font-bold hover:bg-bg"
+              >
                 Stay offline
               </button>
-              <button onClick={login} className="rounded-xl border-2 border-black bg-main px-4 py-2 text-sm font-bold hover:opacity-90">
+              <button
+                onClick={login}
+                className="rounded-xl border-2 border-black bg-main px-4 py-2 text-sm font-bold hover:opacity-90"
+              >
                 Sign in
               </button>
             </div>
@@ -571,7 +756,12 @@ export default function Home() {
       {syncError && (
         <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl border-2 border-black bg-red-100 px-4 py-3 text-sm font-bold shadow-base">
           {syncError}
-          <button onClick={() => setSyncError(null)} className="ml-3 text-stone-400 hover:text-black">✕</button>
+          <button
+            onClick={() => setSyncError(null)}
+            className="ml-3 text-stone-400 hover:text-black"
+          >
+            ✕
+          </button>
         </div>
       )}
       {/* Mobile overlay */}
@@ -586,7 +776,7 @@ export default function Home() {
       <aside
         className={`fixed left-0 top-0 z-50 h-screen w-[260px] p-3 transition-transform duration-200 lg:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        <div className="flex h-full flex-col overflow-hidden rounded-2xl border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <div className="flex h-full flex-col overflow-hidden rounded-2xl border-4 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <div className="flex items-center justify-end border-b-2 border-black px-4 py-3">
             <button
               onClick={() => setSidebarOpen(false)}
@@ -620,18 +810,6 @@ export default function Home() {
               upsert(vId, 0, title)
             }}
             onRemove={remove}
-            isLoggedIn={isLoggedIn}
-            user={user}
-            login={login}
-            loginWithEmail={loginWithEmail}
-            register={register}
-            logout={logout}
-            flushPlaylists={flushPlaylists}
-            flushFolders={flushFolders}
-            flushHistory={flushHistory}
-            setPlaylists={setPlaylists}
-            setFolders={setFolders}
-            setHistory={setHistory}
           />
         </div>
       </aside>
@@ -665,18 +843,6 @@ export default function Home() {
               upsert(vId, 0, title)
             }}
             onRemove={remove}
-            isLoggedIn={isLoggedIn}
-            user={user}
-            login={login}
-            loginWithEmail={loginWithEmail}
-            register={register}
-            logout={logout}
-            flushPlaylists={flushPlaylists}
-            flushFolders={flushFolders}
-            flushHistory={flushHistory}
-            setPlaylists={setPlaylists}
-            setFolders={setFolders}
-            setHistory={setHistory}
           />
         </aside>
 
@@ -688,7 +854,7 @@ export default function Home() {
             <div className="px-4 text-center">
               <div className="inline-block">
                 <Image
-                  src="/yol_logo.webp"
+                  src={darkMode ? '/yol_logo_dark.webp' : '/yol_logo.webp'}
                   alt="YouTubeOnLoop"
                   width={780}
                   height={400}
@@ -751,7 +917,7 @@ export default function Home() {
                             onChange={(e) => setUrl(e.target.value)}
                             placeholder="Search songs or paste URL…"
                             autoFocus
-                            className="min-w-0 flex-1 bg-transparent text-sm placeholder-stone-400 focus:outline-none"
+                            className="min-w-0 flex-1 bg-transparent text-sm placeholder-stone-400 focus:outline-none dark:bg-stone-100"
                           />
                         </div>
                         <Button
@@ -798,7 +964,7 @@ export default function Home() {
             {(searchLoading || searchResults.length > 0) &&
               !isYoutubeUrl(url) && (
                 <div className="rounded-2xl border-2 border-black bg-white shadow-base">
-                  <div className="flex items-center gap-2 border-b border-black px-4 py-2">
+                  <div className="flex items-center gap-2 border-b-2 border-black px-4 py-2">
                     <Search className="h-3.5 w-3.5" />
                     <p className="text-sm font-bold">
                       {searchLoading ? 'Searching…' : `"${url}"`}
@@ -814,37 +980,53 @@ export default function Home() {
                   )}
                   <div className="divide-y-2 divide-black">
                     {searchResults.map((video) => (
-                      <button
+                      <div
                         key={video.videoId}
-                        onClick={() => {
-                          setVideoId(video.videoId)
-                          setUrl(`https://youtube.com/watch?v=${video.videoId}`)
-                          setSearchResults([])
-                          setLoopCount(0)
-                          setIsPlaying(true)
-                          upsert(video.videoId, 0, video.title)
-                        }}
-                        className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-bg"
+                        className="group flex items-center gap-3 p-3 transition-colors hover:bg-bg"
                       >
-                        <img
-                          src={`https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`}
-                          alt=""
-                          className="h-12 w-20 shrink-0 rounded-xl border-2 border-black object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold">
-                            {video.title}
-                          </p>
-                          <p className="text-xs text-stone-500">
-                            {video.author}
-                          </p>
-                          {video.lengthSeconds > 0 && (
-                            <p className="text-xs text-stone-400">
-                              {formatDuration(video.lengthSeconds)}
+                        <button
+                          onClick={() => {
+                            setVideoId(video.videoId)
+                            setUrl(
+                              `https://youtube.com/watch?v=${video.videoId}`,
+                            )
+                            setSearchResults([])
+                            setLoopCount(0)
+                            setIsPlaying(true)
+                            upsert(video.videoId, 0, video.title)
+                          }}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <img
+                            src={`https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`}
+                            alt=""
+                            className="h-12 w-20 shrink-0 rounded-xl border-2 border-black object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold">
+                              {video.title}
                             </p>
-                          )}
-                        </div>
-                      </button>
+                            <p className="text-xs text-stone-500">
+                              {video.author}
+                            </p>
+                            {video.lengthSeconds > 0 && (
+                              <p className="text-xs text-stone-400">
+                                {formatDuration(video.lengthSeconds)}
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setAddToPlaylistTarget(video)
+                          }}
+                          className="shrink-0 rounded-lg border-2 border-black p-1.5 opacity-0 transition-all hover:bg-main group-hover:opacity-100"
+                          title="Add to playlist"
+                        >
+                          <ListPlus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -1188,14 +1370,64 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* ── FEATURE REQUEST BUTTON ── */}
-      <button
-        onClick={() => { setFeatureOpen(true); setFeatureSubmitted(false); setFeatureText('') }}
-        className="fixed right-5 top-5 z-50 flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-main hover:shadow-none"
-      >
-        <Lightbulb className="h-3.5 w-3.5" />
-        Feature Request
-      </button>
+      {/* ── ACCOUNT / SETTINGS ── */}
+      <SidebarMenu
+        isLoggedIn={isLoggedIn}
+        user={user}
+        login={login}
+        loginWithEmail={loginWithEmail}
+        register={register}
+        logout={() => {
+          flushPlaylists()
+          flushFolders()
+          flushHistory()
+          logout()
+        }}
+        onExport={handleExport}
+        onHelp={() => setHelpOpen(true)}
+        onImport={handleImport}
+        onFeature={() => {
+          setFeatureOpen(true)
+          setFeatureSubmitted(false)
+          setFeatureText('')
+        }}
+        darkMode={darkMode}
+        onToggleDark={toggleDark}
+      />
+
+      {/* Add to playlist dialog */}
+      <Dialog open={!!addToPlaylistTarget} onOpenChange={(v) => { if (!v) setAddToPlaylistTarget(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add to playlist</DialogTitle>
+          </DialogHeader>
+          {addToPlaylistTarget && (
+            <div className="flex flex-col gap-1 pt-1">
+              {playlists.length === 0 && (
+                <p className="text-sm text-stone-500">No playlists yet. Create one first.</p>
+              )}
+              {playlists.map((p) => {
+                const already = p.videos.some((v) => v.videoId === addToPlaylistTarget.videoId)
+                return (
+                  <button
+                    key={p.id}
+                    disabled={already}
+                    onClick={() => {
+                      addToPlaylist(p.id, addToPlaylistTarget.videoId, addToPlaylistTarget.title)
+                      setAddToPlaylistTarget(null)
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl border-2 border-black px-3 py-2 text-sm font-bold transition-all hover:bg-bg disabled:opacity-40"
+                  >
+                    <span>{p.emoji || '🎵'}</span>
+                    <span className="flex-1 truncate text-left">{p.name}</span>
+                    {already && <Check className="h-3.5 w-3.5 shrink-0 text-stone-400" />}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={featureOpen} onOpenChange={setFeatureOpen}>
         <DialogContent className="rounded-2xl border-2 border-black bg-white shadow-none sm:max-w-md">
@@ -1210,8 +1442,12 @@ export default function Home() {
               <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-main">
                 <Check className="h-6 w-6" />
               </div>
-              <p className="text-center text-sm font-bold">Thanks for the suggestion!</p>
-              <p className="text-center text-xs text-stone-500">We read every request.</p>
+              <p className="text-center text-sm font-bold">
+                Thanks for the suggestion!
+              </p>
+              <p className="text-center text-xs text-stone-500">
+                We read every request.
+              </p>
             </div>
           ) : (
             <form
@@ -1251,20 +1487,16 @@ export default function Home() {
                 disabled={!featureText.trim() || featureSubmitting}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-black bg-main py-2.5 text-sm font-bold transition-all hover:opacity-90 active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
               >
-                {featureSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit'}
+                {featureSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Submit'
+                )}
               </button>
             </form>
           )}
         </DialogContent>
       </Dialog>
-
-      {/* ── HELP BUTTON ── */}
-      <button
-        onClick={() => setHelpOpen(true)}
-        className="fixed bottom-5 right-5 z-50 flex h-10 w-10 items-center justify-center rounded-xl border-2 border-black bg-white text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-main hover:shadow-none"
-      >
-        ?
-      </button>
 
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent className="rounded-2xl border-2 border-black bg-white shadow-none sm:max-w-2xl">
@@ -1491,18 +1723,6 @@ function LibrarySidebar({
   clear,
   onPlay,
   onRemove,
-  isLoggedIn,
-  user,
-  login,
-  loginWithEmail,
-  register,
-  logout,
-  flushPlaylists,
-  flushFolders,
-  flushHistory,
-  setPlaylists,
-  setFolders,
-  setHistory,
 }: {
   playlists: ReturnType<
     typeof import('@/lib/use-playlists').usePlaylists
@@ -1525,18 +1745,6 @@ function LibrarySidebar({
   clear: () => void
   onPlay: (videoId: string, title?: string) => void
   onRemove: (videoId: string) => void
-  isLoggedIn: boolean
-  user: import('@/lib/use-auth').AuthUser | null
-  login: () => void
-  loginWithEmail: (email: string, password: string) => Promise<string | null>
-  register: (email: string, password: string) => Promise<string | null>
-  logout: () => void
-  flushPlaylists: () => void
-  flushFolders: () => void
-  flushHistory: () => void
-  setPlaylists: (data: ReturnType<typeof import('@/lib/use-playlists').usePlaylists>['playlists']) => void
-  setFolders: (data: ReturnType<typeof import('@/lib/use-folders').useFolders>['folders']) => void
-  setHistory: (data: ReturnType<typeof import('@/lib/use-loop-history').useLoopHistory>['history']) => void
 }) {
   // local UI state
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
@@ -1574,15 +1782,6 @@ function LibrarySidebar({
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
-
-  const handleExport = () => {
-    const data = { exportedAt: new Date().toISOString(), playlists, history, folders }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = 'yol-data.json'; a.click()
-    URL.revokeObjectURL(url)
-  }
 
   // derive uncategorized playlists (not in any folder)
   const categorizedIds = new Set(folders.flatMap((f) => f.playlistIds))
@@ -1726,7 +1925,7 @@ function LibrarySidebar({
                 <button
                   onClick={() => {
                     setShowNewPlaylist(true)
-                    setShowNewFolder(false)
+                    setNewPlaylistName('')
                   }}
                   className="flex flex-1 items-center justify-center gap-1 rounded-xl border-2 border-dashed border-stone-300 py-1.5 text-xs text-stone-400 transition-colors hover:border-black hover:text-black"
                 >
@@ -1736,30 +1935,46 @@ function LibrarySidebar({
                 {/* Folder button hidden for now */}
               </div>
 
-              {/* New playlist input */}
-              {showNewPlaylist && (
-                <div className="px-2 pb-1.5">
-                  <input
-                    autoFocus
-                    type="text"
-                    value={newPlaylistName}
-                    onChange={(e) => setNewPlaylistName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newPlaylistName.trim()) {
-                        createPlaylist(newPlaylistName.trim())
-                        setNewPlaylistName('')
-                        setShowNewPlaylist(false)
-                      }
-                      if (e.key === 'Escape') {
-                        setShowNewPlaylist(false)
-                        setNewPlaylistName('')
-                      }
+              {/* New playlist dialog */}
+              <Dialog
+                open={showNewPlaylist}
+                onOpenChange={(v) => {
+                  setShowNewPlaylist(v)
+                  if (!v) setNewPlaylistName('')
+                }}
+              >
+                <DialogContent className="max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle>New playlist</DialogTitle>
+                  </DialogHeader>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      if (!newPlaylistName.trim()) return
+                      createPlaylist(newPlaylistName.trim())
+                      setNewPlaylistName('')
+                      setShowNewPlaylist(false)
                     }}
-                    placeholder="Playlist name…"
-                    className="w-full rounded-xl border-2 border-black bg-bg/30 px-3 py-1.5 text-xs placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-main"
-                  />
-                </div>
-              )}
+                    className="flex flex-col gap-3 pt-1"
+                  >
+                    <input
+                      autoFocus
+                      type="text"
+                      value={newPlaylistName}
+                      onChange={(e) => setNewPlaylistName(e.target.value)}
+                      placeholder="Playlist name…"
+                      className="rounded-xl border-2 border-black px-3 py-2 text-sm placeholder-stone-400 focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newPlaylistName.trim()}
+                      className="rounded-xl border-2 border-black bg-main py-2 text-sm font-bold transition-all hover:opacity-90 disabled:opacity-40"
+                    >
+                      Create
+                    </button>
+                  </form>
+                </DialogContent>
+              </Dialog>
 
               {/* New folder input hidden for now */}
 
@@ -2186,48 +2401,6 @@ function LibrarySidebar({
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Import / Export — fixed at bottom */}
-      <SidebarMenu
-        isLoggedIn={isLoggedIn}
-        user={user}
-        login={login}
-        loginWithEmail={loginWithEmail}
-        register={register}
-        logout={() => { flushPlaylists(); flushFolders(); flushHistory(); logout() }}
-        onExport={handleExport}
-        onImport={(file) => {
-          const reader = new FileReader()
-          reader.onload = async (ev) => {
-            try {
-              const parsed = JSON.parse(ev.target?.result as string)
-              if (isLoggedIn) {
-                const confirmed = window.confirm('This will replace all your synced data. Continue?')
-                if (!confirmed) return
-                const token = getAuthToken()
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-                await Promise.all([
-                  fetch(`${apiUrl}/yol/sync/playlists`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.playlists ?? [] }) }),
-                  fetch(`${apiUrl}/yol/sync/folders`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.folders ?? [] }) }),
-                  fetch(`${apiUrl}/yol/sync/history`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ data: parsed.history ?? [] }) }),
-                ])
-                setPlaylists(parsed.playlists ?? [])
-                setFolders(parsed.folders ?? [])
-                setHistory(parsed.history ?? [])
-                window.location.reload()
-                return
-              }
-              if (parsed.playlists) localStorage.setItem('yol-playlists', JSON.stringify(parsed.playlists))
-              if (parsed.history) localStorage.setItem('yol-loop-history', JSON.stringify(parsed.history))
-              if (parsed.folders) localStorage.setItem('yol-folders', JSON.stringify(parsed.folders))
-              window.location.reload()
-            } catch {
-              alert('Invalid file. Please use a yol-data.json export.')
-            }
-          }
-          reader.readAsText(file)
-        }}
-      />
     </div>
   )
 }
@@ -2242,6 +2415,10 @@ function SidebarMenu({
   logout,
   onExport,
   onImport,
+  onHelp,
+  onFeature,
+  darkMode,
+  onToggleDark,
 }: {
   isLoggedIn: boolean
   user: import('@/lib/use-auth').AuthUser | null
@@ -2251,15 +2428,20 @@ function SidebarMenu({
   logout: () => void
   onExport: () => void
   onImport: (file: File) => void
+  onHelp: () => void
+  onFeature: () => void
+  darkMode: boolean
+  onToggleDark: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
+  const [dataOpen, setDataOpen] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [pos, setPos] = useState({ bottom: 0, left: 0 })
+  const [pos, setPos] = useState({ top: 0, right: 0 })
   const btnRef = useRef<HTMLButtonElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -2267,7 +2449,10 @@ function SidebarMenu({
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
-      if (!dropRef.current?.contains(e.target as Node) && !btnRef.current?.contains(e.target as Node)) {
+      if (
+        !dropRef.current?.contains(e.target as Node) &&
+        !btnRef.current?.contains(e.target as Node)
+      ) {
         setOpen(false)
       }
     }
@@ -2278,148 +2463,289 @@ function SidebarMenu({
   const handleToggle = () => {
     if (!open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect()
-      setPos({ bottom: window.innerHeight - rect.bottom, left: rect.right + 8 })
+      setPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
     }
     setOpen((v) => !v)
   }
+
+  // Keep dropdown aligned if window resizes
+  useEffect(() => {
+    if (!open || !btnRef.current) return
+    const update = () => {
+      const rect = btnRef.current!.getBoundingClientRect()
+      setPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
+    }
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [open])
 
   async function handleAuthSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const err = authMode === 'login'
-      ? await loginWithEmail(email, password)
-      : await register(email, password)
+    const err =
+      authMode === 'login'
+        ? await loginWithEmail(email, password)
+        : await register(email, password)
     setLoading(false)
-    if (err) { setError(err); return }
+    if (err) {
+      setError(err)
+      return
+    }
     setAuthOpen(false)
-    setEmail(''); setPassword('')
+    setEmail('')
+    setPassword('')
   }
 
   return (
     <>
-      <div className="border-t-2 border-black p-2">
-        <button
-          ref={btnRef}
-          onClick={handleToggle}
-          className="flex w-full items-center justify-between rounded-xl border-2 border-black px-3 py-2 text-xs font-bold hover:bg-main transition-all"
-        >
-          <span className="truncate">
-            {isLoggedIn ? (user?.name || user?.email || 'Account') : 'Menu'}
-          </span>
-          <ChevronRight className="h-3.5 w-3.5 shrink-0 ml-1" />
-        </button>
-      </div>
+      <button
+        ref={btnRef}
+        onClick={handleToggle}
+        className="fixed right-5 top-5 z-50 flex h-9 items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-white pl-2.5 pr-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-main hover:shadow-none"
+        title="Settings"
+      >
+        <Settings className="h-4 w-4 shrink-0" />
+        <span className="text-sm font-bold">Settings</span>
+      </button>
 
       {/* Dialog lives outside the portal so it persists when dropdown closes */}
-      <Dialog open={authOpen} onOpenChange={(v) => { setAuthOpen(v); if (!v) { setError(null); setEmail(''); setPassword('') } }}>
-        <DialogContent className="max-w-xs">
+      <Dialog
+        open={authOpen}
+        onOpenChange={(v) => {
+          setAuthOpen(v)
+          if (!v) {
+            setError(null)
+            setEmail('')
+            setPassword('')
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{authMode === 'login' ? 'Sign in' : 'Create account'}</DialogTitle>
+            <DialogTitle>
+              {authMode === 'login' ? 'Sign in' : 'Create account'}
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAuthSubmit} className="flex flex-col gap-3 pt-1">
+          <div className="flex flex-col gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                login()
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-black px-3 py-2 text-sm font-bold transition-all hover:bg-bg"
+            >
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                <path
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  fill="#EA4335"
+                />
+              </svg>
+              Continue with Google
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="h-px flex-1 bg-stone-200" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
+                or
+              </span>
+              <div className="h-px flex-1 bg-stone-200" />
+            </div>
+          </div>
+          <form onSubmit={handleAuthSubmit} className="flex flex-col gap-3">
             <div className="flex gap-1">
-              <button type="button" onClick={() => setAuthMode('login')}
-                className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'login' ? 'bg-main' : 'hover:bg-bg'}`}>
+              <button
+                type="button"
+                onClick={() => setAuthMode('login')}
+                className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'login' ? 'bg-main' : 'hover:bg-bg'}`}
+              >
                 Sign in
               </button>
-              <button type="button" onClick={() => setAuthMode('register')}
-                className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'register' ? 'bg-main' : 'hover:bg-bg'}`}>
+              <button
+                type="button"
+                onClick={() => setAuthMode('register')}
+                className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'register' ? 'bg-main' : 'hover:bg-bg'}`}
+              >
                 Register
               </button>
             </div>
             <input
-              type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email" required autoFocus
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              required
+              autoFocus
               className="rounded-xl border-2 border-black px-3 py-2 text-sm focus:outline-none"
             />
             <input
-              type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password (min 6 chars)" required minLength={6}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password (min 6 chars)"
+              required
+              minLength={6}
               className="rounded-xl border-2 border-black px-3 py-2 text-sm focus:outline-none"
             />
-            {error && <p className="text-xs text-red-600 font-bold">{error}</p>}
-            <button type="submit" disabled={loading}
-              className="rounded-xl border-2 border-black bg-main py-2 text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-all">
-              {loading ? '…' : authMode === 'login' ? 'Sign in' : 'Create account'}
+            {error && <p className="text-xs font-bold text-red-600">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="rounded-xl border-2 border-black bg-main py-2 text-sm font-bold transition-all hover:opacity-90 disabled:opacity-50"
+            >
+              {loading
+                ? '…'
+                : authMode === 'login'
+                  ? 'Sign in'
+                  : 'Create account'}
             </button>
           </form>
         </DialogContent>
       </Dialog>
 
-      {open && typeof document !== 'undefined' && createPortal(
-        <div
-          ref={dropRef}
-          style={{ bottom: pos.bottom, left: pos.left }}
-          className="fixed z-50 w-56 rounded-2xl border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-        >
-          {/* Auth section */}
-          {isLoggedIn ? (
-            <div className="p-3 border-b-2 border-black">
-              <div className="flex items-center gap-2 mb-2.5">
-                {user?.avatar_url && (
-                  <img src={user.avatar_url} alt={user.name} className="w-7 h-7 rounded-full border-2 border-black shrink-0" />
-                )}
-                <span className="text-xs font-bold truncate">{user?.name || user?.email}</span>
-              </div>
+      <Dialog open={dataOpen} onOpenChange={setDataOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manage data</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-1">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-stone-500">
+                Export your playlists, folders, and history as a JSON backup
+                file.
+              </p>
               <button
-                onClick={() => { logout(); setOpen(false) }}
-                className="w-full rounded-xl border-2 border-black px-2 py-1.5 text-xs font-bold hover:bg-bg transition-all"
-              >
-                Sign out
-              </button>
-            </div>
-          ) : (
-            <div className="p-3 border-b-2 border-black flex flex-col gap-2">
-              <button
-                onClick={() => { login(); setOpen(false) }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-black px-2 py-1.5 text-xs font-bold hover:bg-bg transition-all"
-              >
-                <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                Sign in with Google
-              </button>
-              <button
-                onClick={() => { setAuthOpen(true); setOpen(false) }}
-                className="w-full rounded-xl border-2 border-black bg-main px-2 py-1.5 text-xs font-bold hover:opacity-90 transition-all"
-              >
-                Sign in / Register
-              </button>
-            </div>
-          )}
-
-          {/* Data section */}
-          <div className="p-3 flex flex-col gap-2">
-            <button
-              onClick={() => { onExport(); setOpen(false) }}
-              className="flex w-full items-center gap-2 rounded-xl border-2 border-black px-3 py-2 text-xs font-bold hover:bg-bg transition-all"
-            >
-              <Download className="h-3.5 w-3.5 shrink-0" />
-              Export data
-            </button>
-            <label className="flex w-full cursor-pointer items-center gap-2 rounded-xl border-2 border-black px-3 py-2 text-xs font-bold hover:bg-bg transition-all">
-              <Upload className="h-3.5 w-3.5 shrink-0" />
-              Import data
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) { onImport(f); setOpen(false) }
-                  e.target.value = ''
+                onClick={() => {
+                  onExport()
+                  setDataOpen(false)
                 }}
-              />
-            </label>
+                className="flex w-full items-center gap-2 rounded-xl border-2 border-black px-4 py-2.5 text-sm font-bold transition-all hover:bg-bg"
+              >
+                <Download className="h-4 w-4 shrink-0" />
+                Export backup
+              </button>
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-stone-500">
+                Restore from a previously exported backup file.
+              </p>
+              <label className="flex w-full cursor-pointer items-center gap-2 rounded-xl border-2 border-black px-4 py-2.5 text-sm font-bold transition-all hover:bg-bg">
+                <Upload className="h-4 w-4 shrink-0" />
+                Import backup
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) {
+                      onImport(f)
+                      setDataOpen(false)
+                    }
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+            </div>
           </div>
-        </div>,
-        document.body
-      )}
+        </DialogContent>
+      </Dialog>
+
+      {open &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            ref={dropRef}
+            style={{ top: pos.top, right: 20 }}
+            className="fixed z-50 w-48 overflow-hidden rounded-2xl border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <div className="p-2">
+              {isLoggedIn ? (
+                <>
+                  <p className="flex items-center gap-1.5 px-2 py-1.5 text-sm font-bold text-stone-500">
+                    <Hand className="h-3.5 w-3.5 shrink-0 animate-wave" />
+                    Hi, {user?.name?.split(' ')[0] || user?.email}
+                  </p>
+                  <button
+                    onClick={() => {
+                      logout()
+                      setOpen(false)
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
+                  >
+                    <LogOut className="h-4 w-4 shrink-0 text-stone-500" />
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setAuthOpen(true)
+                    setOpen(false)
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
+                >
+                  <User className="h-4 w-4 shrink-0 text-stone-500" />
+                  Log in
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setDataOpen(true)
+                  setOpen(false)
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
+              >
+                <Download className="h-4 w-4 shrink-0 text-stone-500" />
+                Manage data
+              </button>
+              <button
+                onClick={() => {
+                  onHelp()
+                  setOpen(false)
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
+              >
+                <HelpCircle className="h-4 w-4 shrink-0 text-stone-500" />
+                Help & shortcuts
+              </button>
+              <button
+                onClick={() => {
+                  onFeature()
+                  setOpen(false)
+                }}
+                className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
+              >
+                <Lightbulb className="h-4 w-4 shrink-0 text-stone-500" />
+                Feature requests
+              </button>
+              <button
+                onClick={onToggleDark}
+                className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
+              >
+                {darkMode ? (
+                  <Sun className="h-4 w-4 shrink-0 text-stone-500" />
+                ) : (
+                  <Moon className="h-4 w-4 shrink-0 text-stone-500" />
+                )}
+                {darkMode ? 'Light mode' : 'Dark mode'}
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   )
 }

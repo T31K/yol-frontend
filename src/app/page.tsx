@@ -158,6 +158,9 @@ const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 export default function Home() {
+  const initialVideoId = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('v') ?? undefined
+    : undefined
   const [darkMode, setDarkMode] = useState(false)
 
   useEffect(() => {
@@ -177,8 +180,8 @@ export default function Home() {
     })
   }, [])
 
-  const [url, setUrl] = useState('')
-  const [videoId, setVideoId] = useState<string | null>(null)
+  const [url, setUrl] = useState(initialVideoId ? `https://youtube.com/watch?v=${initialVideoId}` : '')
+  const [videoId, setVideoId] = useState<string | null>(initialVideoId ?? null)
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [noteSaveStatus, setNoteSaveStatus] = useState<
     'idle' | 'saving' | 'saved'

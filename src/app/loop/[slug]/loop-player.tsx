@@ -17,7 +17,7 @@ import {
   Gauge,
   RefreshCw,
 } from 'lucide-react'
-import { useLoopHistory } from '@/lib/use-loop-history'
+import { useLoopHistory, getStoredLoopCount } from '@/lib/use-loop-history'
 
 interface YTPlayer {
   playVideo: () => void
@@ -36,16 +36,20 @@ interface YTPlayerEvent {
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
 
 export default function LoopPlayer({ videoId }: { videoId: string }) {
-  const [loopCount, setLoopCount] = useState(0)
+  const initialCount = getStoredLoopCount(videoId)
+  const [loopCount, setLoopCount] = useState(initialCount)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
+  const [repeatLimit, setRepeatLimit] = useState('')
   const [apiReady, setApiReady] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const loopCountRef = useRef(initialCount)
+  const repeatLimitRef = useRef<number | null>(null)
   const { upsert } = useLoopHistory(false)
 
   useEffect(() => {
@@ -78,11 +82,16 @@ export default function LoopPlayer({ videoId }: { videoId: string }) {
   const onPlayerStateChange = useCallback(
     (event: YTPlayerEvent) => {
       if (event.data === 0) {
-        setLoopCount((prev) => {
-          const next = prev + 1
-          upsert(videoId, next)
-          return next
-        })
+        const next = loopCountRef.current + 1
+        loopCountRef.current = next
+        setLoopCount(next)
+        upsert(videoId, next)
+
+        if (repeatLimitRef.current !== null && next >= repeatLimitRef.current) {
+          setIsPlaying(false)
+          return
+        }
+
         const start = startTime ? parseInt(startTime) : 0
         playerRef.current?.seekTo(start, true)
         playerRef.current?.playVideo()
@@ -120,8 +129,6 @@ export default function LoopPlayer({ videoId }: { videoId: string }) {
       events: { onStateChange: onPlayerStateChange, onReady: onPlayerReady },
     })
 
-    upsert(videoId, 0)
-
     return () => {
       if (playerRef.current) {
         playerRef.current.destroy()
@@ -135,8 +142,19 @@ export default function LoopPlayer({ videoId }: { videoId: string }) {
     endTime,
     onPlayerStateChange,
     onPlayerReady,
-    upsert,
   ])
+
+  const handleRepeatLimitChange = (val: string) => {
+    setRepeatLimit(val)
+    const num = parseInt(val)
+    repeatLimitRef.current = val === '' || isNaN(num) || num <= 0 ? null : num
+  }
+
+  const handleResetLoopCount = () => {
+    loopCountRef.current = 0
+    setLoopCount(0)
+    upsert(videoId, 0)
+  }
 
   const togglePlay = () => {
     if (isPlaying) playerRef.current?.pauseVideo()
@@ -165,12 +183,16 @@ export default function LoopPlayer({ videoId }: { videoId: string }) {
       <div className="flex flex-wrap justify-center gap-3">
         <div
           className="cursor-pointer rounded-base border-4 border-black bg-main px-5 py-2 shadow-base transition-all hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none"
-          onClick={() => setLoopCount(0)}
+          onClick={handleResetLoopCount}
           title="Click to reset"
         >
           <span className="flex items-center gap-2 text-lg font-heading">
             <RefreshCw className="h-4 w-4" />
-            Loops: <span className="text-xl font-bold">{loopCount}</span>
+            Loops:{' '}
+            <span className="text-xl font-bold">
+              {loopCount}
+              {repeatLimit !== '' && parseInt(repeatLimit) > 0 && ` / ${repeatLimit}`}
+            </span>
           </span>
         </div>
         <div className="rounded-base border-4 border-black bg-white px-5 py-2 shadow-base">
@@ -280,6 +302,17 @@ export default function LoopPlayer({ videoId }: { videoId: string }) {
               onChange={(e) => setEndTime(e.target.value)}
               placeholder="∞"
               min="0"
+              className="w-20 rounded-base border-2 border-black px-2 py-1 text-center"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-heading">Stop after:</label>
+            <input
+              type="number"
+              value={repeatLimit}
+              onChange={(e) => handleRepeatLimitChange(e.target.value)}
+              placeholder="∞"
+              min="1"
               className="w-20 rounded-base border-2 border-black px-2 py-1 text-center"
             />
           </div>

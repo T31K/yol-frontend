@@ -37,6 +37,11 @@ async function syncToServer(items: LoopHistoryItem[]) {
   if (res.status === 401) trigger401()
 }
 
+export function getStoredLoopCount(videoId: string): number {
+  const items = loadLocal()
+  return items.find((h) => h.videoId === videoId)?.loopCount ?? 0
+}
+
 export function useLoopHistory(isLoggedIn: boolean) {
   const [history, setHistory] = useState<LoopHistoryItem[]>([])
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)

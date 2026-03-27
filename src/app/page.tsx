@@ -51,6 +51,8 @@ import {
   Moon,
   Sun,
   Hand,
+  Shuffle,
+  Link,
 } from 'lucide-react'
 import Image from 'next/image'
 import { NoteEditor } from '@/components/NoteEditor'
@@ -209,6 +211,7 @@ export default function Home() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [addToPlaylistTarget, setAddToPlaylistTarget] =
     useState<SearchResult | null>(null)
+  const [addSelectKey, setAddSelectKey] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [featureOpen, setFeatureOpen] = useState(false)
@@ -381,6 +384,8 @@ export default function Home() {
   }, [endTime])
 
   const currentTitle = history.find((h) => h.videoId === videoId)?.title
+
+  useEffect(() => { setAddSelectKey((k) => k + 1) }, [videoId])
 
   useEffect(() => {
     if (window.YT && window.YT.Player) {
@@ -801,6 +806,7 @@ export default function Home() {
             setPlaylistEmoji={setPlaylistEmoji}
             setFolderEmoji={setFolderEmoji}
             clear={clear}
+            addToPlaylist={addToPlaylist}
             onPlay={(vId, title) => {
               setVideoId(vId)
               setUrl(`https://youtube.com/watch?v=${vId}`)
@@ -834,6 +840,7 @@ export default function Home() {
             setPlaylistEmoji={setPlaylistEmoji}
             setFolderEmoji={setFolderEmoji}
             clear={clear}
+            addToPlaylist={addToPlaylist}
             onPlay={(vId, title) => {
               setVideoId(vId)
               setUrl(`https://youtube.com/watch?v=${vId}`)
@@ -1232,6 +1239,7 @@ export default function Home() {
                     <ListMusic className="h-4 w-4 shrink-0 text-stone-400" />
                     <span className="text-sm font-bold">Add to playlist:</span>
                     <Select
+                      key={addSelectKey}
                       onValueChange={(value) => {
                         if (value === '__new__') {
                           const name = prompt('New playlist name:')
@@ -1242,6 +1250,7 @@ export default function Home() {
                         } else {
                           addToPlaylist(value, videoId, currentTitle)
                         }
+                        setAddSelectKey((k) => k + 1)
                       }}
                     >
                       <SelectTrigger className="h-8 w-44 rounded-xl border-2 border-black bg-white text-xs">
@@ -1721,6 +1730,7 @@ function LibrarySidebar({
   setPlaylistEmoji,
   setFolderEmoji,
   clear,
+  addToPlaylist,
   onPlay,
   onRemove,
 }: {
@@ -1743,6 +1753,7 @@ function LibrarySidebar({
   setPlaylistEmoji: (id: string, emoji: string) => void
   setFolderEmoji: (id: string, emoji: string) => void
   clear: () => void
+  addToPlaylist: (playlistId: string, videoId: string, title?: string) => void
   onPlay: (videoId: string, title?: string) => void
   onRemove: (videoId: string) => void
 }) {
@@ -1762,6 +1773,10 @@ function LibrarySidebar({
   const [preDragFolderState, setPreDragFolderState] =
     useState<Set<string> | null>(null)
   const [topLevelOrder, setTopLevelOrderRaw] = useState<string[]>([])
+  const [importOpen, setImportOpen] = useState(false)
+  const [importUrl, setImportUrl] = useState('')
+  const [importLoading, setImportLoading] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem('yol-top-order')
@@ -1842,9 +1857,22 @@ function LibrarySidebar({
                   <ChevronRight className="h-3 w-3 rotate-180" />
                   Back
                 </button>
-                <span className="truncate text-xs font-bold text-stone-700">
+                <span className="min-w-0 flex-1 truncate text-xs font-bold text-stone-700">
                   {activePlaylist.name}
                 </span>
+                {activePlaylist.videos.length > 0 && (
+                  <button
+                    onClick={() => {
+                      const vids = activePlaylist.videos
+                      const pick = vids[Math.floor(Math.random() * vids.length)]
+                      onPlay(pick.videoId, pick.title)
+                    }}
+                    className="shrink-0 rounded-lg p-1 text-stone-400 transition-colors hover:bg-bg/50 hover:text-black"
+                    title="Shuffle"
+                  >
+                    <Shuffle className="h-3 w-3" />
+                  </button>
+                )}
               </div>
 
               {/* Move to folder select */}
@@ -1930,10 +1958,80 @@ function LibrarySidebar({
                   className="flex flex-1 items-center justify-center gap-1 rounded-xl border-2 border-dashed border-stone-300 py-1.5 text-xs text-stone-400 transition-colors hover:border-black hover:text-black"
                 >
                   <Plus className="h-3 w-3" />
-                  Create New Playlist
+                  New Playlist
                 </button>
-                {/* Folder button hidden for now */}
+                <button
+                  onClick={() => {
+                    setImportOpen(true)
+                    setImportUrl('')
+                    setImportError(null)
+                  }}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-xl border-2 border-dashed border-stone-300 py-1.5 text-xs text-stone-400 transition-colors hover:border-black hover:text-black"
+                >
+                  <Link className="h-3 w-3" />
+                  Import
+                </button>
               </div>
+
+              {/* Import playlist dialog */}
+              <Dialog open={importOpen} onOpenChange={(v) => { setImportOpen(v); if (!v) setImportError(null) }}>
+                <DialogContent className="max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle>Import YouTube Playlist</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-3 pt-1">
+                    <input
+                      type="text"
+                      value={importUrl}
+                      onChange={(e) => { setImportUrl(e.target.value); setImportError(null) }}
+                      placeholder="https://youtube.com/playlist?list=PL..."
+                      className="w-full rounded-base border-2 border-black px-3 py-2 text-sm"
+                    />
+                    {importError && (
+                      <p className="text-xs text-red-500">{importError}</p>
+                    )}
+                    <Button
+                      disabled={importLoading || !importUrl.trim()}
+                      onClick={async () => {
+                        let playlistId: string | null = null
+                        try {
+                          const u = new URL(importUrl.trim())
+                          playlistId = u.searchParams.get('list')
+                        } catch {
+                          if (/^PL[A-Za-z0-9_-]+$/.test(importUrl.trim())) {
+                            playlistId = importUrl.trim()
+                          }
+                        }
+                        if (!playlistId) {
+                          setImportError('Invalid URL. Paste a YouTube playlist link.')
+                          return
+                        }
+                        setImportLoading(true)
+                        setImportError(null)
+                        try {
+                          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+                          const res = await fetch(`${API_URL}/yol/import-playlist?id=${encodeURIComponent(playlistId)}`)
+                          const data = await res.json()
+                          if (!res.ok) { setImportError(data.error || 'Import failed'); return }
+                          const name = `Imported ${new Date().toLocaleDateString()}`
+                          const id = createPlaylist(name)
+                          for (const v of data.videos) {
+                            addToPlaylist(id, v.videoId, v.title)
+                          }
+                          setImportOpen(false)
+                          setActivePlaylistId(id)
+                        } catch {
+                          setImportError('Network error. Try again.')
+                        } finally {
+                          setImportLoading(false)
+                        }
+                      }}
+                    >
+                      {importLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Import'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               {/* New playlist dialog */}
               <Dialog

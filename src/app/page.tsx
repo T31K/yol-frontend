@@ -62,6 +62,8 @@ import { Kbd } from '@/components/ui/kbd'
 import { useLoopHistory } from '@/lib/use-loop-history'
 import { usePlaylists } from '@/lib/use-playlists'
 import { useFolders } from '@/lib/use-folders'
+import { useLanguage } from '@/lib/use-language'
+import type { Lang } from '@/lib/translations'
 import {
   useAuth,
   getAuthToken,
@@ -161,6 +163,7 @@ export default function Home() {
   const initialVideoId = typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('v') ?? undefined
     : undefined
+  const { lang, setLang, t } = useLanguage()
   const [darkMode, setDarkMode] = useState(false)
 
   useEffect(() => {
@@ -819,6 +822,7 @@ export default function Home() {
               upsert(vId, 0, title)
             }}
             onRemove={remove}
+            t={t}
           />
         </div>
       </aside>
@@ -853,6 +857,7 @@ export default function Home() {
               upsert(vId, 0, title)
             }}
             onRemove={remove}
+            t={t}
           />
         </aside>
 
@@ -925,7 +930,7 @@ export default function Home() {
                             type="text"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
-                            placeholder="Search songs or paste URL…"
+                            placeholder={t.searchPlaceholder}
                             autoFocus
                             className="min-w-0 flex-1 bg-transparent text-sm placeholder-stone-400 focus:outline-none dark:bg-stone-100"
                           />
@@ -977,7 +982,7 @@ export default function Home() {
                   <div className="flex items-center gap-2 border-b-2 border-black px-4 py-2">
                     <Search className="h-3.5 w-3.5" />
                     <p className="text-sm font-bold">
-                      {searchLoading ? 'Searching…' : `"${url}"`}
+                      {searchLoading ? t.searching : `"${url}"`}
                     </p>
                     {searchLoading && (
                       <Loader2 className="ml-auto h-4 w-4 animate-spin" />
@@ -1059,7 +1064,7 @@ export default function Home() {
                       type="text"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
-                      placeholder="Search or paste another URL…"
+                      placeholder={t.searchPlaceholder}
                       className="min-w-0 flex-1 rounded-xl border-2 border-black px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-main"
                     />
                   </form>
@@ -1240,12 +1245,12 @@ export default function Home() {
                 <div className="rounded-2xl border-4 border-black bg-white p-3 shadow-base">
                   <div className="flex items-center gap-2">
                     <ListMusic className="h-4 w-4 shrink-0 text-stone-400" />
-                    <span className="text-sm font-bold">Add to playlist:</span>
+                    <span className="text-sm font-bold">{t.addToPlaylistLabel}</span>
                     <Select
                       key={addSelectKey}
                       onValueChange={(value) => {
                         if (value === '__new__') {
-                          const name = prompt('New playlist name:')
+                          const name = prompt(t.newPlaylistTitle + ':')
                           if (name?.trim()) {
                             const id = createPlaylist(name.trim())
                             addToPlaylist(id, videoId, currentTitle)
@@ -1257,7 +1262,7 @@ export default function Home() {
                       }}
                     >
                       <SelectTrigger className="h-8 w-44 rounded-xl border-2 border-black bg-white text-xs">
-                        <SelectValue placeholder="Select playlist…" />
+                        <SelectValue placeholder={t.selectPlaylist} />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-2 border-black bg-white">
                         {playlists.map((p) => (
@@ -1266,7 +1271,7 @@ export default function Home() {
                           </SelectItem>
                         ))}
                         <SelectItem value="__new__">
-                          + Create new playlist
+                          {t.createNewPlaylist}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -1405,18 +1410,21 @@ export default function Home() {
         }}
         darkMode={darkMode}
         onToggleDark={toggleDark}
+        lang={lang}
+        setLang={setLang}
+        t={t}
       />
 
       {/* Add to playlist dialog */}
       <Dialog open={!!addToPlaylistTarget} onOpenChange={(v) => { if (!v) setAddToPlaylistTarget(null) }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Add to playlist</DialogTitle>
+            <DialogTitle>{t.addToPlaylist}</DialogTitle>
           </DialogHeader>
           {addToPlaylistTarget && (
             <div className="flex flex-col gap-1 pt-1">
               {playlists.length === 0 && (
-                <p className="text-sm text-stone-500">No playlists yet. Create one first.</p>
+                <p className="text-sm text-stone-500">{t.noPlaylistsYet}</p>
               )}
               {playlists.map((p) => {
                 const already = p.videos.some((v) => v.videoId === addToPlaylistTarget.videoId)
@@ -1736,6 +1744,7 @@ function LibrarySidebar({
   addToPlaylist,
   onPlay,
   onRemove,
+  t,
 }: {
   playlists: ReturnType<
     typeof import('@/lib/use-playlists').usePlaylists
@@ -1759,6 +1768,7 @@ function LibrarySidebar({
   addToPlaylist: (playlistId: string, videoId: string, title?: string) => void
   onPlay: (videoId: string, title?: string) => void
   onRemove: (videoId: string) => void
+  t: import('@/lib/translations').Translations
 }) {
   // local UI state
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
@@ -1833,14 +1843,14 @@ function LibrarySidebar({
             onClick={() => setActivePlaylistId(null)}
           >
             <ListMusic className="mr-1.5 h-3 w-3" />
-            Playlists
+            {t.playlists}
           </TabsTrigger>
           <TabsTrigger
             value="history"
             className="mr-1 rounded-lg text-xs font-bold hover:bg-main/60 data-[state=active]:bg-main data-[state=active]:shadow-none"
           >
             <Clock className="mr-1.5 h-3 w-3" />
-            History
+            {t.history}
           </TabsTrigger>
         </TabsList>
 
@@ -1858,7 +1868,7 @@ function LibrarySidebar({
                   className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs text-stone-400 transition-colors hover:bg-bg/50 hover:text-black"
                 >
                   <ChevronRight className="h-3 w-3 rotate-180" />
-                  Back
+                  {t.back}
                 </button>
                 <span className="min-w-0 flex-1 truncate text-xs font-bold text-stone-700">
                   {activePlaylist.name}
@@ -1871,7 +1881,7 @@ function LibrarySidebar({
                       onPlay(pick.videoId, pick.title)
                     }}
                     className="shrink-0 rounded-lg p-1 text-stone-400 transition-colors hover:bg-bg/50 hover:text-black"
-                    title="Shuffle"
+                    title={t.shuffle}
                   >
                     <Shuffle className="h-3 w-3" />
                   </button>
@@ -1882,7 +1892,7 @@ function LibrarySidebar({
               {folders.length > 0 && (
                 <div className="flex items-center gap-2 px-3 pb-2">
                   <span className="shrink-0 text-[10px] text-stone-400">
-                    Folder:
+                    {t.folder}
                   </span>
                   <Select
                     value={
@@ -1901,7 +1911,7 @@ function LibrarySidebar({
                       <SelectValue placeholder="None" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-2 border-black bg-white text-xs">
-                      <SelectItem value="none">No folder</SelectItem>
+                      <SelectItem value="none">{t.noFolder}</SelectItem>
                       {folders.map((f) => (
                         <SelectItem key={f.id} value={f.id}>
                           {f.name}
@@ -1914,7 +1924,7 @@ function LibrarySidebar({
 
               {activePlaylist.videos.length === 0 && (
                 <p className="px-3 py-2 text-xs text-stone-400">
-                  {`No songs yet. Add a video to this playlist while it's playing.`}
+                  {t.noSongsYet}
                 </p>
               )}
               <div className="space-y-1 px-1">
@@ -1961,7 +1971,7 @@ function LibrarySidebar({
                   className="flex flex-1 items-center justify-center gap-1 rounded-xl border-2 border-dashed border-stone-300 py-1.5 text-xs text-stone-400 transition-colors hover:border-black hover:text-black"
                 >
                   <Plus className="h-3 w-3" />
-                  New Playlist
+                  {t.newPlaylist}
                 </button>
                 <button
                   onClick={() => {
@@ -1972,7 +1982,7 @@ function LibrarySidebar({
                   className="flex flex-1 items-center justify-center gap-1 rounded-xl border-2 border-dashed border-stone-300 py-1.5 text-xs text-stone-400 transition-colors hover:border-black hover:text-black"
                 >
                   <Link className="h-3 w-3" />
-                  Import
+                  {t.import}
                 </button>
               </div>
 
@@ -1980,14 +1990,14 @@ function LibrarySidebar({
               <Dialog open={importOpen} onOpenChange={(v) => { setImportOpen(v); if (!v) setImportError(null) }}>
                 <DialogContent className="max-w-sm">
                   <DialogHeader>
-                    <DialogTitle>Import YouTube Playlist</DialogTitle>
+                    <DialogTitle>{t.importPlaylistTitle}</DialogTitle>
                   </DialogHeader>
                   <div className="flex flex-col gap-3 pt-1">
                     <input
                       type="text"
                       value={importUrl}
                       onChange={(e) => { setImportUrl(e.target.value); setImportError(null) }}
-                      placeholder="https://youtube.com/playlist?list=PL..."
+                      placeholder={t.importPlaceholder}
                       className="w-full rounded-base border-2 border-black px-3 py-2 text-sm"
                     />
                     {importError && (
@@ -2006,7 +2016,7 @@ function LibrarySidebar({
                           }
                         }
                         if (!playlistId) {
-                          setImportError('Invalid URL. Paste a YouTube playlist link.')
+                          setImportError(t.importInvalidUrl)
                           return
                         }
                         setImportLoading(true)
@@ -2015,8 +2025,8 @@ function LibrarySidebar({
                           const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
                           const res = await fetch(`${API_URL}/yol/import-playlist?id=${encodeURIComponent(playlistId)}`)
                           const data = await res.json()
-                          if (!res.ok) { setImportError(data.error || 'Import failed'); return }
-                          const name = `Imported ${new Date().toLocaleDateString()}`
+                          if (!res.ok) { setImportError(data.error || t.importFailed); return }
+                          const name = `${t.importedOn} ${new Date().toLocaleDateString()}`
                           const id = createPlaylist(name)
                           for (const v of data.videos) {
                             addToPlaylist(id, v.videoId, v.title)
@@ -2024,13 +2034,13 @@ function LibrarySidebar({
                           setImportOpen(false)
                           setActivePlaylistId(id)
                         } catch {
-                          setImportError('Network error. Try again.')
+                          setImportError(t.importNetworkError)
                         } finally {
                           setImportLoading(false)
                         }
                       }}
                     >
-                      {importLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Import'}
+                      {importLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.import}
                     </Button>
                   </div>
                 </DialogContent>
@@ -2046,7 +2056,7 @@ function LibrarySidebar({
               >
                 <DialogContent className="max-w-sm">
                   <DialogHeader>
-                    <DialogTitle>New playlist</DialogTitle>
+                    <DialogTitle>{t.newPlaylistTitle}</DialogTitle>
                   </DialogHeader>
                   <form
                     onSubmit={(e) => {
@@ -2063,7 +2073,7 @@ function LibrarySidebar({
                       type="text"
                       value={newPlaylistName}
                       onChange={(e) => setNewPlaylistName(e.target.value)}
-                      placeholder="Playlist name…"
+                      placeholder={t.playlistNamePlaceholder}
                       className="rounded-xl border-2 border-black px-3 py-2 text-sm placeholder-stone-400 focus:outline-none"
                     />
                     <button
@@ -2071,7 +2081,7 @@ function LibrarySidebar({
                       disabled={!newPlaylistName.trim()}
                       className="rounded-xl border-2 border-black bg-main py-2 text-sm font-bold transition-all hover:opacity-90 disabled:opacity-40"
                     >
-                      Create
+                      {t.create}
                     </button>
                   </form>
                 </DialogContent>
@@ -2358,7 +2368,7 @@ function LibrarySidebar({
 
               {playlists.length === 0 && !showNewPlaylist && (
                 <p className="px-3 py-1 text-xs text-stone-400">
-                  No playlists yet
+                  {t.noPlaylists}
                 </p>
               )}
             </div>
@@ -2520,6 +2530,9 @@ function SidebarMenu({
   onFeature,
   darkMode,
   onToggleDark,
+  lang,
+  setLang,
+  t,
 }: {
   isLoggedIn: boolean
   user: import('@/lib/use-auth').AuthUser | null
@@ -2533,6 +2546,9 @@ function SidebarMenu({
   onFeature: () => void
   darkMode: boolean
   onToggleDark: () => void
+  lang: Lang
+  setLang: (l: Lang) => void
+  t: import('@/lib/translations').Translations
 }) {
   const [open, setOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
@@ -2604,10 +2620,10 @@ function SidebarMenu({
         ref={btnRef}
         onClick={handleToggle}
         className="fixed right-5 top-5 z-50 flex h-9 items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-white pl-2.5 pr-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-main hover:shadow-none"
-        title="Settings"
+        title={t.settings}
       >
         <Settings className="h-4 w-4 shrink-0" />
-        <span className="text-sm font-bold">Settings</span>
+        <span className="text-sm font-bold">{t.settings}</span>
       </button>
 
       {/* Dialog lives outside the portal so it persists when dropdown closes */}
@@ -2625,7 +2641,7 @@ function SidebarMenu({
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {authMode === 'login' ? 'Sign in' : 'Create account'}
+              {authMode === 'login' ? t.signIn : t.createAccount}
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3 pt-1">
@@ -2654,7 +2670,7 @@ function SidebarMenu({
                   fill="#EA4335"
                 />
               </svg>
-              Continue with Google
+              {t.continueWithGoogle}
             </button>
             <div className="flex items-center gap-2">
               <div className="h-px flex-1 bg-stone-200" />
@@ -2671,21 +2687,21 @@ function SidebarMenu({
                 onClick={() => setAuthMode('login')}
                 className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'login' ? 'bg-main' : 'hover:bg-bg'}`}
               >
-                Sign in
+                {t.signIn}
               </button>
               <button
                 type="button"
                 onClick={() => setAuthMode('register')}
                 className={`flex-1 rounded-xl border-2 border-black py-1.5 text-xs font-bold transition-all ${authMode === 'register' ? 'bg-main' : 'hover:bg-bg'}`}
               >
-                Register
+                {t.register}
               </button>
             </div>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
+              placeholder={t.email}
               required
               autoFocus
               className="rounded-xl border-2 border-black px-3 py-2 text-sm focus:outline-none"
@@ -2694,7 +2710,7 @@ function SidebarMenu({
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password (min 6 chars)"
+              placeholder={t.passwordMin}
               required
               minLength={6}
               className="rounded-xl border-2 border-black px-3 py-2 text-sm focus:outline-none"
@@ -2708,8 +2724,8 @@ function SidebarMenu({
               {loading
                 ? '…'
                 : authMode === 'login'
-                  ? 'Sign in'
-                  : 'Create account'}
+                  ? t.signIn
+                  : t.createAccount}
             </button>
           </form>
         </DialogContent>
@@ -2718,14 +2734,11 @@ function SidebarMenu({
       <Dialog open={dataOpen} onOpenChange={setDataOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Manage data</DialogTitle>
+            <DialogTitle>{t.manageDataTitle}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3 pt-1">
             <div className="flex flex-col gap-1">
-              <p className="text-xs text-stone-500">
-                Export your playlists, folders, and history as a JSON backup
-                file.
-              </p>
+              <p className="text-xs text-stone-500">{t.exportDesc}</p>
               <button
                 onClick={() => {
                   onExport()
@@ -2734,16 +2747,14 @@ function SidebarMenu({
                 className="flex w-full items-center gap-2 rounded-xl border-2 border-black px-4 py-2.5 text-sm font-bold transition-all hover:bg-bg"
               >
                 <Download className="h-4 w-4 shrink-0" />
-                Export backup
+                {t.exportBackup}
               </button>
             </div>
             <div className="flex flex-col gap-1">
-              <p className="text-xs text-stone-500">
-                Restore from a previously exported backup file.
-              </p>
+              <p className="text-xs text-stone-500">{t.importDesc}</p>
               <label className="flex w-full cursor-pointer items-center gap-2 rounded-xl border-2 border-black px-4 py-2.5 text-sm font-bold transition-all hover:bg-bg">
                 <Upload className="h-4 w-4 shrink-0" />
-                Import backup
+                {t.importBackup}
                 <input
                   ref={fileRef}
                   type="file"
@@ -2787,7 +2798,7 @@ function SidebarMenu({
                     className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
                   >
                     <LogOut className="h-4 w-4 shrink-0 text-stone-500" />
-                    Sign out
+                    {t.signOut}
                   </button>
                 </>
               ) : (
@@ -2799,7 +2810,7 @@ function SidebarMenu({
                   className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
                 >
                   <User className="h-4 w-4 shrink-0 text-stone-500" />
-                  Log in
+                  {t.logIn}
                 </button>
               )}
               <button
@@ -2810,7 +2821,7 @@ function SidebarMenu({
                 className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
               >
                 <Download className="h-4 w-4 shrink-0 text-stone-500" />
-                Manage data
+                {t.manageData}
               </button>
               <button
                 onClick={() => {
@@ -2820,7 +2831,7 @@ function SidebarMenu({
                 className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
               >
                 <HelpCircle className="h-4 w-4 shrink-0 text-stone-500" />
-                Help & shortcuts
+                {t.helpShortcuts}
               </button>
               <button
                 onClick={() => {
@@ -2830,7 +2841,7 @@ function SidebarMenu({
                 className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold transition-all hover:bg-stone-100"
               >
                 <Lightbulb className="h-4 w-4 shrink-0 text-stone-500" />
-                Feature requests
+                {t.featureRequests}
               </button>
               <button
                 onClick={onToggleDark}
@@ -2841,8 +2852,22 @@ function SidebarMenu({
                 ) : (
                   <Moon className="h-4 w-4 shrink-0 text-stone-500" />
                 )}
-                {darkMode ? 'Light mode' : 'Dark mode'}
+                {darkMode ? t.lightMode : t.darkMode}
               </button>
+              <div className="mt-1 border-t border-stone-100 pt-1">
+                <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-stone-400">{t.language}</p>
+                <div className="flex gap-1 px-2">
+                  {(['en', 'de', 'ja', 'fr'] as const).map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => setLang(l)}
+                      className={`flex-1 rounded-lg py-1 text-xs font-bold transition-all ${lang === l ? 'bg-main border-2 border-black' : 'border-2 border-stone-200 hover:border-black'}`}
+                    >
+                      {l === 'en' ? '🇺🇸' : l === 'de' ? '🇩🇪' : l === 'ja' ? '🇯🇵' : '🇫🇷'}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>,
           document.body,

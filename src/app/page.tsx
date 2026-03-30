@@ -1039,7 +1039,7 @@ export default function Home() {
                             e.stopPropagation()
                             setAddToPlaylistTarget(video)
                           }}
-                          className="shrink-0 rounded-lg border-2 border-black p-1.5 opacity-0 transition-all hover:bg-main group-hover:opacity-100"
+                          className="shrink-0 rounded-lg border-2 border-black p-1.5 transition-all hover:bg-main"
                           title="Add to playlist"
                         >
                           <ListPlus className="h-3.5 w-3.5" />

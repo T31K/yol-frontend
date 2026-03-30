@@ -114,6 +114,19 @@ export function usePlaylists(isLoggedIn: boolean) {
     setPlaylists((prev) => { const next = prev.map((p) => (p.id === id ? { ...p, emoji } : p)); persist(next); return next })
   }, [persist])
 
+  const reorderVideos = useCallback((playlistId: string, orderedVideoIds: string[]) => {
+    setPlaylists((prev) => {
+      const next = prev.map((p) => {
+        if (p.id !== playlistId) return p
+        const map = new Map(p.videos.map((v) => [v.videoId, v]))
+        const reordered = orderedVideoIds.map((id) => map.get(id)).filter(Boolean) as PlaylistVideo[]
+        return { ...p, videos: reordered }
+      })
+      persist(next)
+      return next
+    })
+  }, [persist])
+
   const reorderPlaylists = useCallback((orderedIds: string[]) => {
     setPlaylists((prev) => {
       const map = new Map(prev.map((p) => [p.id, p]))
@@ -124,5 +137,5 @@ export function usePlaylists(isLoggedIn: boolean) {
     })
   }, [persist])
 
-  return { playlists, setPlaylists: hydrate, flushSync, createPlaylist, deletePlaylist, addToPlaylist, removeFromPlaylist, reorderPlaylists, setPlaylistEmoji }
+  return { playlists, setPlaylists: hydrate, flushSync, createPlaylist, deletePlaylist, addToPlaylist, removeFromPlaylist, reorderPlaylists, reorderVideos, setPlaylistEmoji }
 }

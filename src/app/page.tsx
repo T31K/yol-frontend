@@ -260,6 +260,7 @@ export default function Home() {
     addToPlaylist,
     removeFromPlaylist,
     reorderPlaylists,
+    reorderVideos,
     setPlaylistEmoji,
   } = usePlaylists(isLoggedIn)
   const {
@@ -822,6 +823,7 @@ export default function Home() {
               upsert(vId, 0, title)
             }}
             onRemove={remove}
+            reorderVideos={reorderVideos}
             t={t}
           />
         </div>
@@ -857,6 +859,7 @@ export default function Home() {
               upsert(vId, 0, title)
             }}
             onRemove={remove}
+            reorderVideos={reorderVideos}
             t={t}
           />
         </aside>
@@ -1744,6 +1747,7 @@ function LibrarySidebar({
   addToPlaylist,
   onPlay,
   onRemove,
+  reorderVideos,
   t,
 }: {
   playlists: ReturnType<
@@ -1768,6 +1772,7 @@ function LibrarySidebar({
   addToPlaylist: (playlistId: string, videoId: string, title?: string) => void
   onPlay: (videoId: string, title?: string) => void
   onRemove: (videoId: string) => void
+  reorderVideos: (playlistId: string, orderedVideoIds: string[]) => void
   t: import('@/lib/translations').Translations
 }) {
   // local UI state
@@ -1927,36 +1932,65 @@ function LibrarySidebar({
                   {t.noSongsYet}
                 </p>
               )}
-              <div className="space-y-1 px-1">
-                {activePlaylist.videos.map((v) => (
-                  <div
-                    key={v.videoId}
-                    className="group flex items-center gap-2 rounded-xl px-2 py-1 transition-colors hover:bg-bg/50"
-                  >
-                    <img
-                      src={`https://i.ytimg.com/vi/${v.videoId}/default.jpg`}
-                      alt=""
-                      className="h-8 w-11 shrink-0 rounded-lg object-cover opacity-70 transition-opacity group-hover:opacity-100"
-                    />
-                    <button
-                      onClick={() => onPlay(v.videoId, v.title)}
-                      className="min-w-0 flex-1 text-left"
+              <DragDropContext
+                onDragEnd={({ source, destination }) => {
+                  if (!destination || source.index === destination.index) return
+                  const reordered = [...activePlaylist.videos]
+                  const [moved] = reordered.splice(source.index, 1)
+                  reordered.splice(destination.index, 0, moved)
+                  reorderVideos(activePlaylist.id, reordered.map((v) => v.videoId))
+                }}
+              >
+                <Droppable droppableId="videos">
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="space-y-1 px-1"
                     >
-                      <p className="truncate text-[11px] text-stone-600 transition-colors group-hover:text-black">
-                        {v.title || v.videoId}
-                      </p>
-                    </button>
-                    <button
-                      onClick={() =>
-                        removeFromPlaylist(activePlaylist.id, v.videoId)
-                      }
-                      className="shrink-0 text-stone-300 opacity-0 transition-all hover:text-red-400 group-hover:opacity-100"
-                    >
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      {activePlaylist.videos.map((v, idx) => (
+                        <Draggable key={v.videoId} draggableId={v.videoId} index={idx}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              style={{ ...provided.draggableProps.style, opacity: snapshot.isDragging ? 0.7 : 1 }}
+                              className="group flex items-center gap-2 rounded-xl px-2 py-1 transition-colors hover:bg-bg/50"
+                            >
+                              <div
+                                {...provided.dragHandleProps}
+                                className="shrink-0 cursor-grab text-stone-300 hover:text-stone-500 active:cursor-grabbing"
+                              >
+                                <GripVertical className="h-3 w-3" />
+                              </div>
+                              <img
+                                src={`https://i.ytimg.com/vi/${v.videoId}/default.jpg`}
+                                alt=""
+                                className="h-8 w-11 shrink-0 rounded-lg object-cover opacity-70 transition-opacity group-hover:opacity-100"
+                              />
+                              <button
+                                onClick={() => onPlay(v.videoId, v.title)}
+                                className="min-w-0 flex-1 text-left"
+                              >
+                                <p className="truncate text-[11px] text-stone-600 transition-colors group-hover:text-black">
+                                  {v.title || v.videoId}
+                                </p>
+                              </button>
+                              <button
+                                onClick={() => removeFromPlaylist(activePlaylist.id, v.videoId)}
+                                className="shrink-0 text-stone-300 opacity-0 transition-all hover:text-red-400 group-hover:opacity-100"
+                              >
+                                <X className="h-2.5 w-2.5" />
+                              </button>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             </div>
           ) : (
             /* LIST VIEW: folders + playlists */

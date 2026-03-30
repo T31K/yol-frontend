@@ -1,0 +1,38 @@
+# YOL — Feature Tracker
+
+## Implemented
+
+| # | Feature | Notes |
+|---|---------|-------|
+| ✅ | YouTube looping with A/B loop points | Core feature |
+| ✅ | Playback speed control | |
+| ✅ | Repeat count (loop N times then stop) | Persists across reloads |
+| ✅ | Create & manage playlists | |
+| ✅ | Drag-to-reorder videos within a playlist | Using @hello-pangea/dnd |
+| ✅ | Organize playlists into folders | |
+| ✅ | Import YouTube playlist via link | |
+| ✅ | Shuffle playlist | |
+| ✅ | Watch history | |
+| ✅ | Google OAuth sign-in | Production |
+| ✅ | Cloud sync for logged-in users | Playlists, folders, history |
+| ✅ | Dark mode | |
+| ✅ | Add video to playlist from search results | ListPlus button on each result |
+| ✅ | i18n: EN, DE, JA, FR | Language selector in settings dropdown |
+| ✅ | Export / import data backup | JSON file |
+| ✅ | Keyboard shortcuts | F = focus search, Space = play/pause, etc. |
+| ✅ | /watch page | Pre-loads video from URL param |
+
+## Pending (from user requests)
+
+| DB ID | Feature | Simplicity (1–10) | Status |
+|-------|---------|-------------------|--------|
+| 36 | Browser extension — opens YOL with current YouTube tab's video | 2 | pending |
+
+## Backlog (not yet requested, worth considering)
+
+| Feature | Notes |
+|---------|-------|
+| Auto-advance to next playlist video | Play through playlist sequentially |
+| Drag-to-reorder playlists in sidebar | UI only, state exists |
+| pSEO pages | More loop/[slug] pages for SEO |
+| Fix A/B loop start time edge case | Minor bug |

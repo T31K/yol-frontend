@@ -1,0 +1,57 @@
+# YOL — Claude Code Instructions
+
+## What is YOL?
+
+YOL (You Only Loop) is a YouTube looping web app. Users can:
+- Loop any YouTube video with precise A/B loop points
+- Control playback speed
+- Set a repeat count (loop N times then stop)
+- Create and manage playlists with drag-to-reorder
+- Organize playlists into folders
+- Import YouTube playlists via link
+- Shuffle playlists
+- Track watch history
+- Sign in with Google to sync data across devices
+- Use the app in EN, DE, JA, or FR
+
+## Stack
+
+- **Frontend**: Next.js 14 (app router), TypeScript, Tailwind CSS (neobrutalism theme)
+- **Drag-and-drop**: `@hello-pangea/dnd`
+- **Auth**: Google OAuth (production), email/password
+- **Backend**: Custom API at `process.env.NEXT_PUBLIC_API_URL` (default `http://localhost:3001`)
+- **i18n**: Custom `useLanguage` hook + flat translation objects in `src/lib/translations.ts`
+- **State**: React hooks, localStorage for guests, server sync for logged-in users
+- **DB connection alias**: `connectdb1` (see ~/.zshrc) — connects to the main PostgreSQL instance
+
+## Key Files
+
+- `src/app/page.tsx` — entire app UI (~2900+ lines, single component file)
+- `src/lib/use-playlists.ts` — playlist CRUD + reorder + server sync
+- `src/lib/use-folders.ts` — folder CRUD + server sync
+- `src/lib/use-auth.ts` — auth token management
+- `src/lib/use-language.ts` — language selection (persisted to localStorage)
+- `src/lib/translations.ts` — all translation strings (EN/DE/JA/FR)
+- `FEATURES.md` — feature status table
+
+## On Session Start ("dev")
+
+When the user says **"dev"** (or starts a dev session):
+
+1. Connect to the DB using the `connectdb1` credentials from `~/.zshrc` and query:
+   ```sql
+   SELECT id, message, status FROM yol_requests WHERE status = 'pending' ORDER BY id;
+   ```
+2. For each pending request, rate it **1–10 on simplicity** (10 = trivial, 1 = huge).
+3. If simplicity >= 6: plan carefully, implement it, push, update the DB status to `done`, update `FEATURES.md` — no need to show the plan or ask first.
+4. If simplicity < 6: briefly describe your approach and ask before implementing.
+5. After implementing, always run `pnpm run build` to verify before pushing.
+
+## General Rules
+
+- Always run `pnpm run build` before pushing.
+- Keep `FEATURES.md` up to date after any feature work.
+- Update `yol_requests` status in DB after implementing (`done`) or deciding not to (`dismissed`).
+- Don't add dependencies without asking.
+- Don't refactor code outside the scope of the task.
+- Prefer editing `page.tsx` over creating new component files unless the component is clearly reusable.

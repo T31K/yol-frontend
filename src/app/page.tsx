@@ -1242,20 +1242,13 @@ export default function Home() {
                     if (!activePl) return null
                     return (
                       <div className="flex items-center gap-2 border-b-2 border-black bg-stone-50 px-3 py-2 rounded-t-[14px]">
-                        <ListMusic className="h-3.5 w-3.5 shrink-0 text-stone-400" />
-                        <span className="min-w-0 flex-1 truncate text-[11px] font-bold text-stone-600">
-                          {activePl.emoji ? `${activePl.emoji} ` : ''}{activePl.name}
-                          <span className="ml-1 font-normal text-stone-400">
-                            {activePlaylistIndex + 1}/{activePl.videos.length}
-                          </span>
-                        </span>
                         <button
                           onClick={prevPlaylistVideo}
                           disabled={activePlaylistIndex === 0}
                           className="shrink-0 rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-200 hover:text-black disabled:opacity-30"
                           title="Previous song"
                         >
-                          <ChevronLeft className="h-3.5 w-3.5" />
+                          <ChevronLeft className="h-4 w-4" />
                         </button>
                         <button
                           onClick={nextPlaylistVideo}
@@ -1263,22 +1256,22 @@ export default function Home() {
                           className="shrink-0 rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-200 hover:text-black disabled:opacity-30"
                           title="Next song"
                         >
-                          <ChevronRight className="h-3.5 w-3.5" />
+                          <ChevronRight className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setLoopPlaylistMode((v) => !v)}
                           className={`shrink-0 rounded-lg p-1 transition-colors hover:bg-stone-200 ${loopPlaylistMode ? 'text-black' : 'text-stone-300 hover:text-stone-500'}`}
                           title={t.loopPlaylist}
                         >
-                          <Repeat className="h-3.5 w-3.5" />
+                          <Repeat className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => { setActivePlaylistId(null); setActivePlaylistIndex(0) }}
-                          className="shrink-0 rounded-lg p-1 text-stone-300 transition-colors hover:bg-stone-200 hover:text-black"
-                          title="Exit playlist mode"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+                        <span className="min-w-0 flex-1" />
+                        <span className="shrink-0 text-xs font-bold text-stone-700 truncate max-w-[200px]">
+                          {activePl.emoji ? `${activePl.emoji} ` : ''}{activePl.name}
+                        </span>
+                        <span className="shrink-0 text-xs font-normal text-stone-400">
+                          {activePlaylistIndex + 1}/{activePl.videos.length}
+                        </span>
                       </div>
                     )
                   })()}

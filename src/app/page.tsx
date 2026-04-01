@@ -53,6 +53,8 @@ import {
   Hand,
   Shuffle,
   Link,
+  Repeat,
+  ChevronLeft,
 } from 'lucide-react'
 import Image from 'next/image'
 import { NoteEditor } from '@/components/NoteEditor'
@@ -226,6 +228,9 @@ export default function Home() {
   const [featureSubmitted, setFeatureSubmitted] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
+  const [activePlaylistIndex, setActivePlaylistIndex] = useState(0)
+  const [loopPlaylistMode, setLoopPlaylistMode] = useState(false)
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const urlInputRef = useRef<HTMLInputElement>(null)
@@ -233,6 +238,11 @@ export default function Home() {
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef('')
   const endTimeRef = useRef('')
+  const activePlaylistIdRef = useRef<string | null>(null)
+  const activePlaylistIndexRef = useRef(0)
+  const loopPlaylistModeRef = useRef(false)
+  const playlistsRef = useRef<ReturnType<typeof import('@/lib/use-playlists').usePlaylists>['playlists']>([])
+  const loopPointsRef = useRef<Record<string, { start: string; end: string }>>({})
   const {
     user,
     isLoggedIn,
@@ -389,6 +399,92 @@ export default function Home() {
   useEffect(() => {
     endTimeRef.current = endTime
   }, [endTime])
+  useEffect(() => { activePlaylistIdRef.current = activePlaylistId }, [activePlaylistId])
+  useEffect(() => { activePlaylistIndexRef.current = activePlaylistIndex }, [activePlaylistIndex])
+  useEffect(() => { loopPlaylistModeRef.current = loopPlaylistMode }, [loopPlaylistMode])
+  useEffect(() => { playlistsRef.current = playlists }, [playlists])
+
+  // Load loop points from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('yol-loop-points')
+    if (stored) {
+      try { loopPointsRef.current = JSON.parse(stored) } catch {}
+    }
+  }, [])
+
+  // Restore loop points when video changes
+  useEffect(() => {
+    if (!videoId) {
+      setStartTime('')
+      setEndTime('')
+      return
+    }
+    const pts = loopPointsRef.current[videoId]
+    if (pts) {
+      setStartTime(pts.start)
+      setEndTime(pts.end)
+    } else {
+      setStartTime('')
+      setEndTime('')
+    }
+  }, [videoId])
+
+  // Advance to the next video in the active playlist. Returns true if advanced, false if playlist ended.
+  const advancePlaylist = useCallback((): boolean => {
+    const pid = activePlaylistIdRef.current
+    const idx = activePlaylistIndexRef.current
+    const plist = playlistsRef.current.find((p) => p.id === pid)
+    if (!plist) return false
+    const nextIdx = idx + 1
+    if (nextIdx < plist.videos.length) {
+      const next = plist.videos[nextIdx]
+      setActivePlaylistIndex(nextIdx)
+      setVideoId(next.videoId)
+      setUrl(`https://youtube.com/watch?v=${next.videoId}`)
+      setLoopCount(0)
+      setIsPlaying(true)
+      upsert(next.videoId, 0, next.title)
+      return true
+    } else if (loopPlaylistModeRef.current && plist.videos.length > 0) {
+      const first = plist.videos[0]
+      setActivePlaylistIndex(0)
+      setVideoId(first.videoId)
+      setUrl(`https://youtube.com/watch?v=${first.videoId}`)
+      setLoopCount(0)
+      setIsPlaying(true)
+      upsert(first.videoId, 0, first.title)
+      return true
+    }
+    return false
+  }, [upsert])
+
+  const prevPlaylistVideo = useCallback(() => {
+    const plist = playlists.find((p) => p.id === activePlaylistId)
+    if (!plist) return
+    const prevIdx = activePlaylistIndex - 1
+    if (prevIdx < 0) return
+    const prev = plist.videos[prevIdx]
+    setActivePlaylistIndex(prevIdx)
+    setVideoId(prev.videoId)
+    setUrl(`https://youtube.com/watch?v=${prev.videoId}`)
+    setLoopCount(0)
+    setIsPlaying(true)
+    upsert(prev.videoId, 0, prev.title)
+  }, [activePlaylistId, activePlaylistIndex, playlists, upsert])
+
+  const nextPlaylistVideo = useCallback(() => {
+    const plist = playlists.find((p) => p.id === activePlaylistId)
+    if (!plist) return
+    const nextIdx = activePlaylistIndex + 1
+    if (nextIdx >= plist.videos.length) return
+    const next = plist.videos[nextIdx]
+    setActivePlaylistIndex(nextIdx)
+    setVideoId(next.videoId)
+    setUrl(`https://youtube.com/watch?v=${next.videoId}`)
+    setLoopCount(0)
+    setIsPlaying(true)
+    upsert(next.videoId, 0, next.title)
+  }, [activePlaylistId, activePlaylistIndex, playlists, upsert])
 
   const currentTitle = history.find((h) => h.videoId === videoId)?.title
 
@@ -418,23 +514,52 @@ export default function Home() {
         // Enforce B (end) point
         const end = endTimeRef.current ? parseInt(endTimeRef.current) : 0
         if (end > 0 && ct >= end) {
-          setLoopCount((prev) => prev + 1)
-          playerRef.current?.seekTo(
-            startTimeRef.current ? parseInt(startTimeRef.current) : 0,
-            true,
-          )
-          playerRef.current?.playVideo()
+          if (activePlaylistIdRef.current) {
+            const advanced = advancePlaylist()
+            if (!advanced) {
+              setLoopCount((prev) => prev + 1)
+              playerRef.current?.seekTo(
+                startTimeRef.current ? parseInt(startTimeRef.current) : 0,
+                true,
+              )
+              playerRef.current?.playVideo()
+            }
+          } else {
+            setLoopCount((prev) => prev + 1)
+            playerRef.current?.seekTo(
+              startTimeRef.current ? parseInt(startTimeRef.current) : 0,
+              true,
+            )
+            playerRef.current?.playVideo()
+          }
         }
       }, 250)
     }
     return () => {
       if (timeUpdateRef.current) clearInterval(timeUpdateRef.current)
     }
-  }, [isPlaying])
+  }, [isPlaying, advancePlaylist])
 
   const onPlayerStateChange = useCallback(
     (event: YTPlayerEvent) => {
       if (event.data === 0) {
+        if (activePlaylistIdRef.current) {
+          const advanced = advancePlaylist()
+          if (!advanced) {
+            // Playlist ended with no loop — keep looping last video
+            setLoopCount((prev) => {
+              const next = prev + 1
+              if (videoId) upsert(videoId, next)
+              return next
+            })
+            playerRef.current?.seekTo(
+              startTimeRef.current ? parseInt(startTimeRef.current) : 0,
+              true,
+            )
+            playerRef.current?.playVideo()
+          }
+          return
+        }
         setLoopCount((prev) => {
           const next = prev + 1
           if (videoId) upsert(videoId, next)
@@ -449,7 +574,7 @@ export default function Home() {
       if (event.data === 1) setIsPlaying(true)
       if (event.data === 2) setIsPlaying(false)
     },
-    [videoId, upsert],
+    [videoId, upsert, advancePlaylist],
   )
 
   const onPlayerReady = useCallback(() => {
@@ -542,6 +667,8 @@ export default function Home() {
       playerRef.current?.seekTo(startTime ? parseInt(startTime) : 0, true)
       playerRef.current?.playVideo()
     } else {
+      setActivePlaylistId(null)
+      setActivePlaylistIndex(0)
       setVideoId(id)
       setLoopCount(0)
       setIsPlaying(true)
@@ -563,6 +690,8 @@ export default function Home() {
     setEndTime('')
     setCurrentTime(0)
     setDuration(0)
+    setActivePlaylistId(null)
+    setActivePlaylistIndex(0)
   }
 
   const togglePlay = () =>
@@ -815,6 +944,17 @@ export default function Home() {
             clear={clear}
             addToPlaylist={addToPlaylist}
             onPlay={(vId, title) => {
+              setActivePlaylistId(null)
+              setVideoId(vId)
+              setUrl(`https://youtube.com/watch?v=${vId}`)
+              setLoopCount(0)
+              setIsPlaying(true)
+              setSearchResults([])
+              upsert(vId, 0, title)
+            }}
+            onPlayFromPlaylist={(playlistId, index, vId, title) => {
+              setActivePlaylistId(playlistId)
+              setActivePlaylistIndex(index)
               setVideoId(vId)
               setUrl(`https://youtube.com/watch?v=${vId}`)
               setLoopCount(0)
@@ -851,6 +991,17 @@ export default function Home() {
             clear={clear}
             addToPlaylist={addToPlaylist}
             onPlay={(vId, title) => {
+              setActivePlaylistId(null)
+              setVideoId(vId)
+              setUrl(`https://youtube.com/watch?v=${vId}`)
+              setLoopCount(0)
+              setIsPlaying(true)
+              setSearchResults([])
+              upsert(vId, 0, title)
+            }}
+            onPlayFromPlaylist={(playlistId, index, vId, title) => {
+              setActivePlaylistId(playlistId)
+              setActivePlaylistIndex(index)
               setVideoId(vId)
               setUrl(`https://youtube.com/watch?v=${vId}`)
               setLoopCount(0)
@@ -1004,6 +1155,8 @@ export default function Home() {
                       >
                         <button
                           onClick={() => {
+                            setActivePlaylistId(null)
+                            setActivePlaylistIndex(0)
                             setVideoId(video.videoId)
                             setUrl(
                               `https://youtube.com/watch?v=${video.videoId}`,
@@ -1083,6 +1236,52 @@ export default function Home() {
 
                 {/* Controls */}
                 <div className="rounded-2xl border-4 border-black bg-white shadow-base">
+                  {/* Playlist context bar */}
+                  {activePlaylistId && (() => {
+                    const activePl = playlists.find((p) => p.id === activePlaylistId)
+                    if (!activePl) return null
+                    return (
+                      <div className="flex items-center gap-2 border-b-2 border-black bg-stone-50 px-3 py-2 rounded-t-[14px]">
+                        <ListMusic className="h-3.5 w-3.5 shrink-0 text-stone-400" />
+                        <span className="min-w-0 flex-1 truncate text-[11px] font-bold text-stone-600">
+                          {activePl.emoji ? `${activePl.emoji} ` : ''}{activePl.name}
+                          <span className="ml-1 font-normal text-stone-400">
+                            {activePlaylistIndex + 1}/{activePl.videos.length}
+                          </span>
+                        </span>
+                        <button
+                          onClick={prevPlaylistVideo}
+                          disabled={activePlaylistIndex === 0}
+                          className="shrink-0 rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-200 hover:text-black disabled:opacity-30"
+                          title="Previous song"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={nextPlaylistVideo}
+                          disabled={activePlaylistIndex >= activePl.videos.length - 1}
+                          className="shrink-0 rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-200 hover:text-black disabled:opacity-30"
+                          title="Next song"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setLoopPlaylistMode((v) => !v)}
+                          className={`shrink-0 rounded-lg p-1 transition-colors hover:bg-stone-200 ${loopPlaylistMode ? 'text-black' : 'text-stone-300 hover:text-stone-500'}`}
+                          title={t.loopPlaylist}
+                        >
+                          <Repeat className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => { setActivePlaylistId(null); setActivePlaylistIndex(0) }}
+                          className="shrink-0 rounded-lg p-1 text-stone-300 transition-colors hover:bg-stone-200 hover:text-black"
+                          title="Exit playlist mode"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )
+                  })()}
                   {/* Playback row: loop count | buttons | speed */}
                   <div className="flex items-center gap-2 px-4 py-3">
                     {/* Loop count */}
@@ -1225,12 +1424,14 @@ export default function Home() {
                           onAfterChange={(values) => {
                             const [start, end] = values as [number, number]
                             setSliderDisplay(null)
-                            setStartTime(start === 0 ? '' : start.toString())
-                            setEndTime(
-                              end === Math.floor(duration)
-                                ? ''
-                                : end.toString(),
-                            )
+                            const newStart = start === 0 ? '' : start.toString()
+                            const newEnd = end === Math.floor(duration) ? '' : end.toString()
+                            setStartTime(newStart)
+                            setEndTime(newEnd)
+                            if (videoId) {
+                              loopPointsRef.current = { ...loopPointsRef.current, [videoId]: { start: newStart, end: newEnd } }
+                              localStorage.setItem('yol-loop-points', JSON.stringify(loopPointsRef.current))
+                            }
                             if (
                               playerRef.current &&
                               typeof playerRef.current.seekTo === 'function'
@@ -1362,6 +1563,29 @@ export default function Home() {
                       {label}
                     </a>
                   ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-stone-400">
+                  More Tools
+                </p>
+                <div className="flex flex-col gap-1">
+                  <a
+                    href="https://profilepicture.ai"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-stone-600 hover:text-black hover:underline"
+                  >
+                    ProfilePicture.ai
+                  </a>
+                  <a
+                    href="https://calorieasy.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-stone-600 hover:text-black hover:underline"
+                  >
+                    Calorieasy.app
+                  </a>
                 </div>
               </div>
             </div>
@@ -1746,6 +1970,7 @@ function LibrarySidebar({
   clear,
   addToPlaylist,
   onPlay,
+  onPlayFromPlaylist,
   onRemove,
   reorderVideos,
   t,
@@ -1771,6 +1996,7 @@ function LibrarySidebar({
   clear: () => void
   addToPlaylist: (playlistId: string, videoId: string, title?: string) => void
   onPlay: (videoId: string, title?: string) => void
+  onPlayFromPlaylist: (playlistId: string, index: number, videoId: string, title?: string) => void
   onRemove: (videoId: string) => void
   reorderVideos: (playlistId: string, orderedVideoIds: string[]) => void
   t: import('@/lib/translations').Translations
@@ -1969,7 +2195,7 @@ function LibrarySidebar({
                                 className="h-8 w-11 shrink-0 rounded-lg object-cover opacity-70 transition-opacity group-hover:opacity-100"
                               />
                               <button
-                                onClick={() => onPlay(v.videoId, v.title)}
+                                onClick={() => onPlayFromPlaylist(activePlaylist.id, idx, v.videoId, v.title)}
                                 className="min-w-0 flex-1 text-left"
                               >
                                 <p className="truncate text-[11px] text-stone-600 transition-colors group-hover:text-black">

@@ -84,6 +84,10 @@ export const translations = {
     // History
     clearHistory: 'Clear history',
     noHistory: 'No history yet',
+
+    // Playlist loop
+    loopPlaylist: 'Loop playlist',
+    playingFrom: 'Playing from',
   },
 
   de: {
@@ -169,6 +173,10 @@ export const translations = {
     // History
     clearHistory: 'Verlauf löschen',
     noHistory: 'Noch kein Verlauf',
+
+    // Playlist loop
+    loopPlaylist: 'Playlist wiederholen',
+    playingFrom: 'Aus',
   },
 
   ja: {
@@ -254,6 +262,10 @@ export const translations = {
     // History
     clearHistory: '履歴を消去',
     noHistory: '履歴がありません',
+
+    // Playlist loop
+    loopPlaylist: 'プレイリストをループ',
+    playingFrom: '再生元',
   },
 
   fr: {
@@ -339,6 +351,10 @@ export const translations = {
     // History
     clearHistory: "Effacer l'historique",
     noHistory: 'Aucun historique',
+
+    // Playlist loop
+    loopPlaylist: 'Boucler la playlist',
+    playingFrom: 'Lu depuis',
   },
 } satisfies Record<Lang, Record<string, string>>
 

@@ -21,6 +21,8 @@
 | ✅ | Export / import data backup | JSON file |
 | ✅ | Keyboard shortcuts | F = focus search, Space = play/pause, etc. |
 | ✅ | /watch page | Pre-loads video from URL param |
+| ✅ | Save A/B loop points per video | Persists to localStorage, restored on revisit |
+| ✅ | Loop playlist mode | Context bar with prev/next nav + loop toggle when playing from a playlist |
 
 ## Pending (from user requests)
 
@@ -32,7 +34,6 @@
 
 | Feature | Notes |
 |---------|-------|
-| Auto-advance to next playlist video | Play through playlist sequentially |
 | Drag-to-reorder playlists in sidebar | UI only, state exists |
 | pSEO pages | More loop/[slug] pages for SEO |
 | Fix A/B loop start time edge case | Minor bug |

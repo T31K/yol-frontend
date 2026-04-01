@@ -40,18 +40,28 @@ YOL (You Only Loop) is a YouTube looping web app. Users can:
 
 When the user says **"dev"** (or starts a dev session):
 
-1. Fetch pending requests from the admin API:
+1. Fetch pending requests from the admin API (always live):
    ```
-   GET {NEXT_PUBLIC_API_URL}/yol/admin/requests
+   GET https://api.t31k.cloud/yol/admin/requests
    Authorization: Bearer {YOL_ADMIN_SECRET}
    ```
-   The secret is in `harmonize-server/.env` as `YOL_ADMIN_SECRET`. Use `curl` or similar to call the endpoint.
+   `YOL_ADMIN_SECRET` is in `.env` in this project root. Use `curl` or similar to call the endpoint.
 2. Skip any requests with status `future` — ignore them entirely.
 3. If there are no pending requests, say "No new requests — time to do some marketing!" and stop.
-4. For each pending request, rate it **1–10 on simplicity** (10 = trivial, 1 = huge).
-5. If simplicity >= 6: plan carefully, implement it, push, update the request status via `PATCH {NEXT_PUBLIC_API_URL}/yol/admin/requests/{id}` with `{ "status": "done" }`, update `FEATURES.md` — no need to show the plan or ask first.
-6. If simplicity < 6: briefly describe your approach and ask before implementing.
+4. For each pending request, rate it **1–10 on complexity** (10 = huge, 1 = trivial).
+5. If complexity <= 6: plan carefully, implement it, push, update the request status via `PATCH {NEXT_PUBLIC_API_URL}/yol/admin/requests/{id}` with `{ "status": "done" }`, update `FEATURES.md` — no need to show the plan or ask first.
+6. If complexity > 6: briefly describe your approach and ask before implementing.
 7. After implementing, always run `pnpm run build` to verify before pushing.
+
+## Frontend & Design
+
+This is a customer-facing product. Visual quality and UX simplicity directly affect retention.
+
+- **Always use the `frontend-design` skill** before implementing any UI changes.
+- **KISS** — keep every interaction obvious. If a user has to think, it's too complex.
+- Prefer fewer, bolder UI choices over many small options.
+- No over-engineering: simple flows, clear affordances, minimal cognitive load.
+- The neobrutalism theme is the foundation — stay consistent with it.
 
 ## General Rules
 

@@ -34,8 +34,60 @@ export const metadata: Metadata = {
   },
 }
 
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Why is ListenOnRepeat down?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'ListenOnRepeat has been experiencing extended downtime and appears to be offline indefinitely. YouTubeOnLoop is a fully working replacement with the same core feature — loop any YouTube video by swapping the domain in the URL.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Does YouTubeOnLoop work the same way as ListenOnRepeat?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. The URL trick works identically: take any YouTube URL and replace youtube.com with youtubeonloop.com. The video will open in loop mode automatically.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I loop a specific part of the video?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. Use the Start and End time fields (in seconds) to set a specific section to loop. This is great for guitar practice or language learning.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is YouTubeOnLoop free?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Completely free. No account, no subscription, no ads on the player. Just paste and loop.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is the best ListenOnRepeat alternative?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'YouTubeOnLoop is the best free ListenOnRepeat alternative. It supports the same URL trick, A/B loop points, playback speed control, playlists, and works on all devices with no signup required.',
+      },
+    },
+  ],
+}
+
 export default function ListenOnRepeatAlternativePage() {
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
     <main className="min-h-screen bg-white bg-[linear-gradient(to_right,#00000018_1px,transparent_1px),linear-gradient(to_bottom,#00000018_1px,transparent_1px)] bg-[size:45px_45px] p-4 md:p-8">
       <div className="mx-auto max-w-3xl">
 
@@ -237,5 +289,6 @@ export default function ListenOnRepeatAlternativePage() {
         </footer>
       </div>
     </main>
+    </>
   )
 }

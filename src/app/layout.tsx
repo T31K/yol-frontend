@@ -9,23 +9,26 @@ const siteUrl = 'https://youtubeonloop.com'
 
 export const metadata: Metadata = {
   title: {
-    default: 'YouTubeOnLoop - Loop Any YouTube Video Endlessly',
+    default: 'YouTubeOnLoop — Loop YouTube Videos on Repeat, Free',
     template: '%s | YouTubeOnLoop',
   },
   description:
-    'Free YouTube looper — loop any YouTube video endlessly. Best ListenOnRepeat alternative. Paste a link or replace youtube.com with youtubeonloop.com. No signup required.',
+    'Loop or repeat any YouTube video endlessly — free. Paste a link or replace youtube.com with youtubeonloop.com. Set A/B loop points, control speed. Best ListenOnRepeat alternative. No signup.',
   keywords: [
+    'youtube on loop',
     'youtube looper',
     'youtube loop',
     'loop youtube video',
     'repeat youtube video',
     'youtube on repeat',
+    'youtube loop url',
     'listenonrepeat alternative',
     'how to loop a youtube video',
     'youtube ab repeat',
     'loop specific part of youtube video',
     'youtubeonloop',
     'youtube repeater',
+    'on loop youtube',
   ],
   authors: [{ name: 'YouTubeOnLoop' }],
   creator: 'YouTubeOnLoop',
@@ -34,7 +37,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: siteUrl,
-    title: 'YouTubeOnLoop - Free YouTube Looper & ListenOnRepeat Alternative',
+    title: 'YouTubeOnLoop — Loop & Repeat YouTube Videos Free',
     description:
       'Free YouTube looper — loop any YouTube video endlessly. Best ListenOnRepeat alternative. No signup required.',
     siteName: 'YouTubeOnLoop',

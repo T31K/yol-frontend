@@ -238,6 +238,7 @@ export default function Home() {
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = useRef('')
   const endTimeRef = useRef('')
+  const lastSearchQueryRef = useRef('')
   const activePlaylistIdRef = useRef<string | null>(null)
   const activePlaylistIndexRef = useRef(0)
   const loopPlaylistModeRef = useRef(false)
@@ -1053,6 +1054,34 @@ export default function Home() {
               <span className="text-base font-bold">Library</span>
             </button>
 
+            {/* Back to search + repeat counter */}
+            {videoId && (
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    const q = lastSearchQueryRef.current
+                    handleReset()
+                    if (q) setUrl(q)
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border-2 border-black bg-white px-3 py-2 text-sm font-bold shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  {activePlaylistId ? 'Go to Search' : 'Back To Search'}
+                </button>
+                <div className="flex items-center gap-2 text-sm font-bold">
+                  <span className="text-stone-500">Repeat Counter:</span>
+                  <div
+                    className="flex cursor-pointer items-center gap-1.5 rounded-xl border-2 border-black bg-main px-2.5 py-1.5 text-xs font-bold transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-base"
+                    onClick={() => setLoopCount(0)}
+                    title="Click to reset"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    {loopCount}x
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ── FIXED VIDEO AREA (always same 16:9 size) ── */}
             <div className="overflow-hidden rounded-2xl border-2 border-black bg-white shadow-base">
               <div
@@ -1061,6 +1090,7 @@ export default function Home() {
               >
                 {/* YT player container — always in DOM */}
                 <div ref={containerRef} className="absolute inset-0" />
+
 
                 {/* Empty-state overlay — shown when no video */}
                 {!videoId && (
@@ -1133,7 +1163,7 @@ export default function Home() {
             {(searchLoading || searchResults.length > 0) &&
               !isYoutubeUrl(url) && (
                 <div className="rounded-2xl border-2 border-black bg-white shadow-base">
-                  <div className="flex items-center gap-2 border-b-2 border-black px-4 py-2">
+                  <div className={`flex items-center gap-2 px-4 py-2 ${!searchLoading || searchResults.length > 0 ? 'border-b-2 border-black' : ''}`}>
                     <Search className="h-3.5 w-3.5" />
                     <p className="text-sm font-bold">
                       {searchLoading ? t.searching : `"${url}"`}
@@ -1157,11 +1187,11 @@ export default function Home() {
                           onClick={() => {
                             setActivePlaylistId(null)
                             setActivePlaylistIndex(0)
+                            lastSearchQueryRef.current = url
                             setVideoId(video.videoId)
                             setUrl(
                               `https://youtube.com/watch?v=${video.videoId}`,
                             )
-                            setSearchResults([])
                             setLoopCount(0)
                             setIsPlaying(true)
                             upsert(video.videoId, 0, video.title)
@@ -1206,93 +1236,45 @@ export default function Home() {
             {/* Controls — shown only when video is loaded */}
             {videoId && (
               <>
-                {/* Stats + search bar */}
-                <div className="flex items-center gap-2 rounded-2xl border-4 border-black bg-white px-3 py-2 shadow-base">
-                  <div className="flex shrink-0 items-center gap-1 text-xs font-bold text-stone-400">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </div>
-                  <form
-                    onSubmit={handleSubmit}
-                    className="flex min-w-0 flex-1 items-center gap-2"
-                  >
-                    <input
-                      ref={urlInputRef}
-                      type="text"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder={t.searchPlaceholder}
-                      className="min-w-0 flex-1 rounded-xl border-2 border-black px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-main"
-                    />
-                  </form>
-                  <Button
-                    type="button"
-                    variant="neutral"
-                    onClick={handleReset}
-                    className="shrink-0 rounded-xl px-2.5 py-1.5 text-xs"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
 
                 {/* Controls */}
                 <div className="rounded-2xl border-4 border-black bg-white shadow-base">
-                  {/* Playlist context bar */}
-                  {activePlaylistId && (() => {
-                    const activePl = playlists.find((p) => p.id === activePlaylistId)
-                    if (!activePl) return null
-                    return (
-                      <div className="flex items-center gap-2 border-b-2 border-black bg-stone-50 px-3 py-2 rounded-t-[14px]">
-                        <button
-                          onClick={prevPlaylistVideo}
-                          disabled={activePlaylistIndex === 0}
-                          className="shrink-0 rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-200 hover:text-black disabled:opacity-30"
-                          title="Previous song"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={nextPlaylistVideo}
-                          disabled={activePlaylistIndex >= activePl.videos.length - 1}
-                          className="shrink-0 rounded-lg p-1 text-stone-400 transition-colors hover:bg-stone-200 hover:text-black disabled:opacity-30"
-                          title="Next song"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setLoopPlaylistMode((v) => !v)}
-                          className={`shrink-0 rounded-lg p-1 transition-colors hover:bg-stone-200 ${loopPlaylistMode ? 'text-black' : 'text-stone-300 hover:text-stone-500'}`}
-                          title={t.loopPlaylist}
-                        >
-                          <Repeat className="h-4 w-4" />
-                        </button>
-                        <span className="min-w-0 flex-1" />
-                        <span className="shrink-0 text-xs font-bold text-stone-700 truncate max-w-[200px]">
-                          {activePl.emoji ? `${activePl.emoji} ` : ''}{activePl.name}
-                        </span>
-                        <span className="shrink-0 text-xs font-normal text-stone-400">
-                          {activePlaylistIndex + 1}/{activePl.videos.length}
-                        </span>
-                      </div>
-                    )
-                  })()}
-                  {/* Playback row: loop count | buttons | speed */}
+                  {/* Playback row: repeat+shuffle | buttons | speed */}
                   <div className="flex items-center gap-2 px-4 py-3">
-                    {/* Loop count */}
-                    <div
-                      className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-black bg-main px-2.5 py-1.5 text-xs font-bold transition-all"
-                      onClick={() => setLoopCount(0)}
-                      title="Click to reset"
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                      {loopCount}x
+                    {/* Repeat + Shuffle */}
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        onClick={() => setLoopPlaylistMode((v) => !v)}
+                        title={t.loopPlaylist}
+                        className={`flex items-center justify-center rounded-xl border-2 border-black p-2 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${loopPlaylistMode ? 'bg-main shadow-base' : 'bg-white shadow-base'}`}
+                      >
+                        <Repeat className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (!activePlaylistId) return
+                          const plist = playlists.find((p) => p.id === activePlaylistId)
+                          if (!plist || plist.videos.length === 0) return
+                          const pick = plist.videos[Math.floor(Math.random() * plist.videos.length)]
+                          setVideoId(pick.videoId)
+                          setUrl(`https://youtube.com/watch?v=${pick.videoId}`)
+                          setLoopCount(0)
+                          setIsPlaying(true)
+                          upsert(pick.videoId, 0, pick.title)
+                        }}
+                        title="Shuffle"
+                        className="flex items-center justify-center rounded-xl border-2 border-black bg-white p-2 shadow-base transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                      >
+                        <Shuffle className="h-4 w-4" />
+                      </button>
                     </div>
 
                     <div className="flex flex-1 items-center justify-center gap-2">
                       <Button
                         variant="neutral"
                         size="icon"
-                        onClick={skipBack}
-                        title="Back 10s"
+                        onClick={activePlaylistId ? prevPlaylistVideo : skipBack}
+                        title={activePlaylistId ? 'Previous song' : 'Back 10s'}
                         className="h-10 w-10 rounded-xl"
                       >
                         <SkipBack className="h-4 w-4" />
@@ -1313,8 +1295,8 @@ export default function Home() {
                       <Button
                         variant="neutral"
                         size="icon"
-                        onClick={skipForward}
-                        title="Forward 10s"
+                        onClick={activePlaylistId ? nextPlaylistVideo : skipForward}
+                        title={activePlaylistId ? 'Next song' : 'Forward 10s'}
                         className="h-10 w-10 rounded-xl"
                       >
                         <SkipForward className="h-4 w-4" />
@@ -1330,7 +1312,7 @@ export default function Home() {
                         playerRef.current?.setPlaybackRate(s)
                       }}
                     >
-                      <SelectTrigger className="h-9 w-20 shrink-0 rounded-xl border-2 border-black bg-white text-sm">
+                      <SelectTrigger className="h-9 w-30 shrink-0 grow-0 rounded-xl border-2 border-black bg-white text-sm">
                         <Gauge className="h-3.5 w-3.5" />
                         <SelectValue placeholder="1x" />
                       </SelectTrigger>

@@ -1020,7 +1020,7 @@ export default function Home() {
           <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
             {/* Mobile library toggle */}
             {/* ── HEADER ───────────────────────────────────────────────── */}
-            <div className="px-4 text-center">
+            <div className={`px-4 text-center transition-all duration-300 ${videoId ? 'hidden' : ''}`}>
               <div className="inline-block">
                 <Image
                   src={darkMode ? '/yol_logo_dark.webp' : '/yol_logo.webp'}

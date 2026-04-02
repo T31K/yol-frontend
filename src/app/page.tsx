@@ -251,6 +251,7 @@ export default function Home() {
   const volumeRef = useRef(100)
   const playlistsRef = useRef<ReturnType<typeof import('@/lib/use-playlists').usePlaylists>['playlists']>([])
   const loopPointsRef = useRef<Record<string, { start: string; end: string }>>({})
+  const seekCooldownRef = useRef(false)
   const {
     user,
     isLoggedIn,
@@ -565,7 +566,10 @@ export default function Home() {
         setDuration(dur)
         // Enforce B (end) point
         const end = endTimeRef.current ? parseInt(endTimeRef.current) : 0
-        if (end > 0 && ct >= end) {
+        if (end > 0 && ct > end - 5) console.log('[YOL]', { ct: ct.toFixed(2), end, endRef: endTimeRef.current, cooldown: seekCooldownRef.current })
+        if (end > 0 && ct >= end && !seekCooldownRef.current) {
+          seekCooldownRef.current = true
+          setTimeout(() => { seekCooldownRef.current = false }, 600)
           if (activePlaylistIdRef.current) {
             const advanced = advancePlaylist()
             if (!advanced) {
@@ -633,6 +637,9 @@ export default function Home() {
     if (playerRef.current) {
       setDuration(playerRef.current.getDuration?.() || 0)
       playerRef.current.setVolume(volumeRef.current)
+      if (startTimeRef.current) {
+        playerRef.current.seekTo(parseInt(startTimeRef.current), true)
+      }
     }
   }, [])
 

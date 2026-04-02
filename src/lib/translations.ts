@@ -61,6 +61,7 @@ export const translations = {
     importedOn: 'Imported',
 
     // Controls
+    volume: 'Volume',
     speed: 'Speed',
     loopCount: 'Loop count',
     loopCountTimes: 'times',
@@ -150,6 +151,7 @@ export const translations = {
     importedOn: 'Importiert',
 
     // Controls
+    volume: 'Lautstärke',
     speed: 'Geschwindigkeit',
     loopCount: 'Wiederholungen',
     loopCountTimes: 'mal',
@@ -239,6 +241,7 @@ export const translations = {
     importedOn: 'インポート済み',
 
     // Controls
+    volume: '音量',
     speed: '速度',
     loopCount: 'ループ回数',
     loopCountTimes: '回',
@@ -328,6 +331,7 @@ export const translations = {
     importedOn: 'Importé le',
 
     // Controls
+    volume: 'Volume',
     speed: 'Vitesse',
     loopCount: 'Répétitions',
     loopCountTimes: 'fois',

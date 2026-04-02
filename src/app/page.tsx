@@ -55,6 +55,8 @@ import {
   Link,
   Repeat,
   ChevronLeft,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import Image from 'next/image'
 import { NoteEditor } from '@/components/NoteEditor'
@@ -92,6 +94,7 @@ interface YTPlayer {
   stopVideo: () => void
   seekTo: (seconds: number, allowSeekAhead: boolean) => void
   setPlaybackRate: (rate: number) => void
+  setVolume: (volume: number) => void
   getCurrentTime: () => number
   getDuration: () => number
   destroy: () => void
@@ -231,6 +234,8 @@ export default function Home() {
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
   const [activePlaylistIndex, setActivePlaylistIndex] = useState(0)
   const [loopPlaylistMode, setLoopPlaylistMode] = useState(false)
+  const [shuffleMode, setShuffleMode] = useState(false)
+  const [volume, setVolume] = useState(100)
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const urlInputRef = useRef<HTMLInputElement>(null)
@@ -242,6 +247,8 @@ export default function Home() {
   const activePlaylistIdRef = useRef<string | null>(null)
   const activePlaylistIndexRef = useRef(0)
   const loopPlaylistModeRef = useRef(false)
+  const shuffleModeRef = useRef(false)
+  const volumeRef = useRef(100)
   const playlistsRef = useRef<ReturnType<typeof import('@/lib/use-playlists').usePlaylists>['playlists']>([])
   const loopPointsRef = useRef<Record<string, { start: string; end: string }>>({})
   const {
@@ -403,7 +410,24 @@ export default function Home() {
   useEffect(() => { activePlaylistIdRef.current = activePlaylistId }, [activePlaylistId])
   useEffect(() => { activePlaylistIndexRef.current = activePlaylistIndex }, [activePlaylistIndex])
   useEffect(() => { loopPlaylistModeRef.current = loopPlaylistMode }, [loopPlaylistMode])
+  useEffect(() => { shuffleModeRef.current = shuffleMode }, [shuffleMode])
   useEffect(() => { playlistsRef.current = playlists }, [playlists])
+
+  // Restore volume from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('yol-volume')
+    if (stored !== null) {
+      const v = parseInt(stored)
+      if (!isNaN(v)) { setVolume(v); volumeRef.current = v }
+    }
+  }, [])
+
+  // Apply volume to player + persist
+  useEffect(() => {
+    volumeRef.current = volume
+    playerRef.current?.setVolume(volume)
+    localStorage.setItem('yol-volume', volume.toString())
+  }, [volume])
 
   // Load loop points from localStorage on mount
   useEffect(() => {
@@ -435,9 +459,13 @@ export default function Home() {
     const pid = activePlaylistIdRef.current
     const idx = activePlaylistIndexRef.current
     const plist = playlistsRef.current.find((p) => p.id === pid)
-    if (!plist) return false
-    const nextIdx = idx + 1
-    if (nextIdx < plist.videos.length) {
+    if (!plist || plist.videos.length === 0) return false
+    const total = plist.videos.length
+
+    if (shuffleModeRef.current && total > 1) {
+      // Pick random index different from current
+      let nextIdx
+      do { nextIdx = Math.floor(Math.random() * total) } while (nextIdx === idx)
       const next = plist.videos[nextIdx]
       setActivePlaylistIndex(nextIdx)
       setVideoId(next.videoId)
@@ -446,7 +474,19 @@ export default function Home() {
       setIsPlaying(true)
       upsert(next.videoId, 0, next.title)
       return true
-    } else if (loopPlaylistModeRef.current && plist.videos.length > 0) {
+    }
+
+    const nextIdx = idx + 1
+    if (nextIdx < total) {
+      const next = plist.videos[nextIdx]
+      setActivePlaylistIndex(nextIdx)
+      setVideoId(next.videoId)
+      setUrl(`https://youtube.com/watch?v=${next.videoId}`)
+      setLoopCount(0)
+      setIsPlaying(true)
+      upsert(next.videoId, 0, next.title)
+      return true
+    } else if (loopPlaylistModeRef.current) {
       const first = plist.videos[0]
       setActivePlaylistIndex(0)
       setVideoId(first.videoId)
@@ -475,9 +515,20 @@ export default function Home() {
 
   const nextPlaylistVideo = useCallback(() => {
     const plist = playlists.find((p) => p.id === activePlaylistId)
-    if (!plist) return
-    const nextIdx = activePlaylistIndex + 1
-    if (nextIdx >= plist.videos.length) return
+    if (!plist || plist.videos.length === 0) return
+    const total = plist.videos.length
+
+    let nextIdx: number
+    if (shuffleMode && total > 1) {
+      do { nextIdx = Math.floor(Math.random() * total) } while (nextIdx === activePlaylistIndex)
+    } else {
+      nextIdx = activePlaylistIndex + 1
+      if (nextIdx >= total) {
+        if (!loopPlaylistMode) return
+        nextIdx = 0
+      }
+    }
+
     const next = plist.videos[nextIdx]
     setActivePlaylistIndex(nextIdx)
     setVideoId(next.videoId)
@@ -485,7 +536,7 @@ export default function Home() {
     setLoopCount(0)
     setIsPlaying(true)
     upsert(next.videoId, 0, next.title)
-  }, [activePlaylistId, activePlaylistIndex, playlists, upsert])
+  }, [activePlaylistId, activePlaylistIndex, playlists, upsert, shuffleMode, loopPlaylistMode])
 
   const currentTitle = history.find((h) => h.videoId === videoId)?.title
 
@@ -581,6 +632,7 @@ export default function Home() {
   const onPlayerReady = useCallback(() => {
     if (playerRef.current) {
       setDuration(playerRef.current.getDuration?.() || 0)
+      playerRef.current.setVolume(volumeRef.current)
     }
   }, [])
 
@@ -1251,19 +1303,9 @@ export default function Home() {
                         <Repeat className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (!activePlaylistId) return
-                          const plist = playlists.find((p) => p.id === activePlaylistId)
-                          if (!plist || plist.videos.length === 0) return
-                          const pick = plist.videos[Math.floor(Math.random() * plist.videos.length)]
-                          setVideoId(pick.videoId)
-                          setUrl(`https://youtube.com/watch?v=${pick.videoId}`)
-                          setLoopCount(0)
-                          setIsPlaying(true)
-                          upsert(pick.videoId, 0, pick.title)
-                        }}
+                        onClick={() => setShuffleMode((v) => !v)}
                         title="Shuffle"
-                        className="flex items-center justify-center rounded-xl border-2 border-black bg-white p-2 shadow-base transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                        className={`flex items-center justify-center rounded-xl border-2 border-black p-2 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${shuffleMode ? 'bg-main shadow-base' : 'bg-white shadow-base'}`}
                       >
                         <Shuffle className="h-4 w-4" />
                       </button>
@@ -1324,6 +1366,29 @@ export default function Home() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  {/* Volume row */}
+                  <div className="flex items-center gap-3 border-t-2 border-black px-4 py-2">
+                    <button
+                      onClick={() => setVolume((v) => (v === 0 ? 100 : 0))}
+                      className="shrink-0 text-stone-500 hover:text-black transition-colors"
+                      title={volume === 0 ? 'Unmute' : 'Mute'}
+                    >
+                      {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                    </button>
+                    <ReactSlider
+                      className="relative flex h-5 flex-1 items-center"
+                      thumbClassName="h-4 w-4 rounded-full border-2 border-black bg-white cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-main z-10"
+                      trackClassName="h-2 rounded-full"
+                      min={0}
+                      max={100}
+                      value={volume}
+                      onChange={(v) => setVolume(v as number)}
+                    />
+                    <span className="w-8 shrink-0 text-right text-[11px] font-medium text-stone-500">
+                      {volume}%
+                    </span>
                   </div>
 
                   {/* Bottom row: A–B slider (only when video loaded) */}
@@ -2079,19 +2144,6 @@ function LibrarySidebar({
                 <span className="min-w-0 flex-1 truncate text-xs font-bold text-stone-700">
                   {activePlaylist.name}
                 </span>
-                {activePlaylist.videos.length > 0 && (
-                  <button
-                    onClick={() => {
-                      const vids = activePlaylist.videos
-                      const pick = vids[Math.floor(Math.random() * vids.length)]
-                      onPlay(pick.videoId, pick.title)
-                    }}
-                    className="shrink-0 rounded-lg p-1 text-stone-400 transition-colors hover:bg-bg/50 hover:text-black"
-                    title={t.shuffle}
-                  >
-                    <Shuffle className="h-3 w-3" />
-                  </button>
-                )}
               </div>
 
               {/* Move to folder select */}

@@ -566,10 +566,9 @@ export default function Home() {
         setDuration(dur)
         // Enforce B (end) point
         const end = endTimeRef.current ? parseInt(endTimeRef.current) : 0
-        if (end > 0 && ct > end - 5) console.log('[YOL]', { ct: ct.toFixed(2), end, endRef: endTimeRef.current, cooldown: seekCooldownRef.current })
         if (end > 0 && ct >= end && !seekCooldownRef.current) {
           seekCooldownRef.current = true
-          setTimeout(() => { seekCooldownRef.current = false }, 600)
+          setTimeout(() => { seekCooldownRef.current = false }, 300)
           if (activePlaylistIdRef.current) {
             const advanced = advancePlaylist()
             if (!advanced) {
@@ -589,7 +588,7 @@ export default function Home() {
             playerRef.current?.playVideo()
           }
         }
-      }, 250)
+      }, 100)
     }
     return () => {
       if (timeUpdateRef.current) clearInterval(timeUpdateRef.current)

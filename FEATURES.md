@@ -25,6 +25,8 @@
 | ✅ | Loop playlist mode | Context bar with prev/next nav + loop toggle when playing from a playlist |
 | ✅ | Volume control | Slider in controls, persisted to localStorage |
 | ✅ | Shuffle mode (persistent toggle) | Shuffle button stays on; advances to random tracks; works with loop playlist |
+| ✅ | Delete playlists | Trash icon in playlist drill-down view with inline confirmation |
+| ✅ | Rename songs in playlist | Pencil icon on hover for inline title editing |
 
 ## Pending (from user requests)
 

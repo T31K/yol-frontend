@@ -27,6 +27,7 @@
 | ✅ | Shuffle mode (persistent toggle) | Shuffle button stays on; advances to random tracks; works with loop playlist |
 | ✅ | Delete playlists | Trash icon in playlist drill-down view with inline confirmation |
 | ✅ | Rename songs in playlist | Pencil icon on hover for inline title editing |
+| ✅ | Channel search & video browsing | Search for YouTube channels, browse their videos (Latest/Popular/Oldest), play or add to playlists |
 
 ## Pending (from user requests)
 

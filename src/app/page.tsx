@@ -140,6 +140,23 @@ interface SearchResult {
   lengthSeconds: number
 }
 
+interface ChannelResult {
+  channelId: string
+  title: string
+  thumbnail: string
+}
+
+interface ChannelVideo {
+  videoId: string
+  title: string
+  lengthText: string
+  viewCount: string
+  publishedTime: string
+  thumbnail: string
+}
+
+type SearchMode = 'songs' | 'channels'
+
 function isYoutubeUrl(input: string): boolean {
   return /youtube\.com|youtu\.be|^[a-zA-Z0-9_-]{11}$/.test(input)
 }
@@ -221,6 +238,12 @@ export default function Home() {
   const [duration, setDuration] = useState(0)
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+  const [searchMode, setSearchMode] = useState<SearchMode>('songs')
+  const [channelResults, setChannelResults] = useState<ChannelResult[]>([])
+  const [browsingChannel, setBrowsingChannel] = useState<{ id: string; name: string } | null>(null)
+  const [channelVideos, setChannelVideos] = useState<ChannelVideo[]>([])
+  const [channelSort, setChannelSort] = useState<'newest' | 'popular' | 'oldest'>('newest')
+  const [channelLoading, setChannelLoading] = useState(false)
   const [addToPlaylistTarget, setAddToPlaylistTarget] =
     useState<SearchResult | null>(null)
   const [addSelectKey, setAddSelectKey] = useState(0)
@@ -674,19 +697,27 @@ export default function Home() {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     if (!url.trim() || isYoutubeUrl(url) || url.length < 3) {
       setSearchResults([])
+      setChannelResults([])
       setSearchLoading(false)
       return
     }
     setSearchLoading(true)
     searchDebounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `${API_URL}/yol/search?q=${encodeURIComponent(url)}`,
-        )
-        const data = await res.json()
-        setSearchResults(Array.isArray(data) ? data : [])
+        if (searchMode === 'channels') {
+          const res = await fetch(`${API_URL}/yol/search-channels?q=${encodeURIComponent(url)}`)
+          const data = await res.json()
+          setChannelResults(Array.isArray(data) ? data : [])
+          setSearchResults([])
+        } else {
+          const res = await fetch(`${API_URL}/yol/search?q=${encodeURIComponent(url)}`)
+          const data = await res.json()
+          setSearchResults(Array.isArray(data) ? data : [])
+          setChannelResults([])
+        }
       } catch {
         setSearchResults([])
+        setChannelResults([])
       } finally {
         setSearchLoading(false)
       }
@@ -694,7 +725,27 @@ export default function Home() {
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     }
-  }, [url])
+  }, [url, searchMode])
+
+  const fetchChannelVideos = useCallback(async (channelId: string, sort: 'newest' | 'popular' | 'oldest') => {
+    setChannelLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/yol/channel-videos?url=${encodeURIComponent(`https://www.youtube.com/channel/${channelId}`)}&sort=${sort}&limit=30`)
+      const data = await res.json()
+      setChannelVideos(data.videos || [])
+    } catch {
+      setChannelVideos([])
+    } finally {
+      setChannelLoading(false)
+    }
+  }, [])
+
+  // When browsing channel or sort changes, fetch videos
+  useEffect(() => {
+    if (browsingChannel) {
+      fetchChannelVideos(browsingChannel.id, channelSort)
+    }
+  }, [browsingChannel, channelSort, fetchChannelVideos])
 
   const fetchAndStoreTitle = useCallback(
     async (id: string, count = 0) => {
@@ -1190,6 +1241,17 @@ export default function Home() {
                         </Button>
                       </div>
                     </form>
+                    <div className="mt-3 flex items-center gap-1.5">
+                      {(['songs', 'channels'] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => { setSearchMode(mode); setBrowsingChannel(null) }}
+                          className={`rounded-lg border-2 border-black px-3 py-1 text-xs font-bold transition-all ${searchMode === mode ? 'bg-main shadow-base' : 'bg-white hover:bg-stone-50'}`}
+                        >
+                          {mode === 'songs' ? t.searchSongs : t.searchChannels}
+                        </button>
+                      ))}
+                    </div>
                     <div className="mt-10 inline-flex flex-col gap-1.5 text-[10px]">
                       <div className="flex items-center gap-2">
                         <span className="w-20 text-left font-bold text-stone-400">
@@ -1221,8 +1283,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Search Results (shown when typing, below the video area) */}
-            {(searchLoading || searchResults.length > 0) &&
+            {/* Search Results — Songs mode */}
+            {searchMode === 'songs' && (searchLoading || searchResults.length > 0) &&
               !isYoutubeUrl(url) && (
                 <div className="rounded-2xl border-2 border-black bg-white shadow-base">
                   <div className={`flex items-center gap-2 px-4 py-2 ${!searchLoading || searchResults.length > 0 ? 'border-b-2 border-black' : ''}`}>
@@ -1294,6 +1356,134 @@ export default function Home() {
                   </div>
                 </div>
               )}
+
+            {/* Search Results — Channels mode */}
+            {searchMode === 'channels' && !browsingChannel && (searchLoading || channelResults.length > 0) &&
+              !isYoutubeUrl(url) && (
+                <div className="rounded-2xl border-2 border-black bg-white shadow-base">
+                  <div className={`flex items-center gap-2 px-4 py-2 ${!searchLoading || channelResults.length > 0 ? 'border-b-2 border-black' : ''}`}>
+                    <Search className="h-3.5 w-3.5" />
+                    <p className="text-sm font-bold">
+                      {searchLoading ? t.searching : `"${url}"`}
+                    </p>
+                    {searchLoading && (
+                      <Loader2 className="ml-auto h-4 w-4 animate-spin" />
+                    )}
+                  </div>
+                  {!searchLoading && channelResults.length === 0 && (
+                    <p className="p-4 text-center text-sm text-stone-500">
+                      No results found
+                    </p>
+                  )}
+                  <div className="divide-y-2 divide-black">
+                    {channelResults.map((ch) => (
+                      <button
+                        key={ch.channelId}
+                        onClick={() => {
+                          setBrowsingChannel({ id: ch.channelId, name: ch.title })
+                          setChannelSort('newest')
+                        }}
+                        className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-bg"
+                      >
+                        {ch.thumbnail && (
+                          <img
+                            src={ch.thumbnail}
+                            alt=""
+                            className="h-10 w-10 shrink-0 rounded-full border-2 border-black object-cover"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold">{ch.title}</p>
+                          <p className="text-xs text-stone-400">{t.browseChannel}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-stone-400" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Channel Video Browser */}
+            {browsingChannel && (
+              <div className="rounded-2xl border-2 border-black bg-white shadow-base">
+                <div className="flex items-center gap-2 border-b-2 border-black px-4 py-2">
+                  <button
+                    onClick={() => setBrowsingChannel(null)}
+                    className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs text-stone-400 transition-colors hover:text-black"
+                  >
+                    <ChevronRight className="h-3 w-3 rotate-180" />
+                    {t.back}
+                  </button>
+                  <p className="min-w-0 flex-1 truncate text-sm font-bold">{browsingChannel.name}</p>
+                </div>
+                <div className="flex gap-1 border-b-2 border-black px-3 py-2">
+                  {(['newest', 'popular', 'oldest'] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setChannelSort(s)}
+                      className={`rounded-lg border-2 border-black px-2.5 py-1 text-xs font-bold transition-all ${channelSort === s ? 'bg-main shadow-base' : 'bg-white hover:bg-stone-50'}`}
+                    >
+                      {s === 'newest' ? t.sortNewest : s === 'popular' ? t.sortPopular : t.sortOldest}
+                    </button>
+                  ))}
+                </div>
+                {channelLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-stone-400" />
+                  </div>
+                ) : channelVideos.length === 0 ? (
+                  <p className="p-4 text-center text-sm text-stone-500">No videos found</p>
+                ) : (
+                  <div className="max-h-[400px] divide-y-2 divide-black overflow-y-auto">
+                    {channelVideos.map((cv) => (
+                      <div
+                        key={cv.videoId}
+                        className="group flex items-center gap-3 p-3 transition-colors hover:bg-bg"
+                      >
+                        <button
+                          onClick={() => {
+                            setActivePlaylistId(null)
+                            setActivePlaylistIndex(0)
+                            setVideoId(cv.videoId)
+                            setUrl(`https://youtube.com/watch?v=${cv.videoId}`)
+                            setLoopCount(0)
+                            setIsPlaying(true)
+                            upsert(cv.videoId, 0, cv.title)
+                          }}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <img
+                            src={cv.thumbnail || `https://i.ytimg.com/vi/${cv.videoId}/mqdefault.jpg`}
+                            alt=""
+                            className="h-12 w-20 shrink-0 rounded-xl border-2 border-black object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold">{cv.title}</p>
+                            <div className="flex items-center gap-2 text-xs text-stone-400">
+                              {cv.lengthText && <span>{cv.lengthText}</span>}
+                              {cv.viewCount && <span>{cv.viewCount}</span>}
+                            </div>
+                            {cv.publishedTime && (
+                              <p className="text-xs text-stone-400">{cv.publishedTime}</p>
+                            )}
+                          </div>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setAddToPlaylistTarget({ videoId: cv.videoId, title: cv.title, author: browsingChannel.name, lengthSeconds: 0 })
+                          }}
+                          className="shrink-0 rounded-lg border-2 border-black p-1.5 transition-all hover:bg-main"
+                          title="Add to playlist"
+                        >
+                          <ListPlus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Controls — shown only when video is loaded */}
             {videoId && (

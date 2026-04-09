@@ -94,6 +94,14 @@ export const translations = {
     deletePlaylist: 'Delete playlist',
     deletePlaylistConfirm: 'Delete this playlist?',
     renameSong: 'Rename',
+
+    // Channel search
+    searchSongs: 'Songs',
+    searchChannels: 'Channels',
+    browseChannel: 'Browse videos',
+    sortNewest: 'Latest',
+    sortPopular: 'Popular',
+    sortOldest: 'Oldest',
   },
 
   de: {
@@ -189,6 +197,14 @@ export const translations = {
     deletePlaylist: 'Playlist löschen',
     deletePlaylistConfirm: 'Diese Playlist löschen?',
     renameSong: 'Umbenennen',
+
+    // Channel search
+    searchSongs: 'Songs',
+    searchChannels: 'Kanäle',
+    browseChannel: 'Videos ansehen',
+    sortNewest: 'Neueste',
+    sortPopular: 'Beliebt',
+    sortOldest: 'Älteste',
   },
 
   ja: {
@@ -284,6 +300,14 @@ export const translations = {
     deletePlaylist: 'プレイリストを削除',
     deletePlaylistConfirm: 'このプレイリストを削除しますか？',
     renameSong: '名前を変更',
+
+    // Channel search
+    searchSongs: '曲',
+    searchChannels: 'チャンネル',
+    browseChannel: '動画を見る',
+    sortNewest: '最新',
+    sortPopular: '人気',
+    sortOldest: '古い順',
   },
 
   fr: {
@@ -379,6 +403,14 @@ export const translations = {
     deletePlaylist: 'Supprimer la playlist',
     deletePlaylistConfirm: 'Supprimer cette playlist ?',
     renameSong: 'Renommer',
+
+    // Channel search
+    searchSongs: 'Chansons',
+    searchChannels: 'Chaînes',
+    browseChannel: 'Parcourir les vidéos',
+    sortNewest: 'Récentes',
+    sortPopular: 'Populaires',
+    sortOldest: 'Anciennes',
   },
 } satisfies Record<Lang, Record<string, string>>
 

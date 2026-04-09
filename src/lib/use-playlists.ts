@@ -127,6 +127,17 @@ export function usePlaylists(isLoggedIn: boolean) {
     })
   }, [persist])
 
+  const renameVideo = useCallback((playlistId: string, videoId: string, newTitle: string) => {
+    setPlaylists((prev) => {
+      const next = prev.map((p) => {
+        if (p.id !== playlistId) return p
+        return { ...p, videos: p.videos.map((v) => v.videoId === videoId ? { ...v, title: newTitle } : v) }
+      })
+      persist(next)
+      return next
+    })
+  }, [persist])
+
   const reorderPlaylists = useCallback((orderedIds: string[]) => {
     setPlaylists((prev) => {
       const map = new Map(prev.map((p) => [p.id, p]))
@@ -137,5 +148,5 @@ export function usePlaylists(isLoggedIn: boolean) {
     })
   }, [persist])
 
-  return { playlists, setPlaylists: hydrate, flushSync, createPlaylist, deletePlaylist, addToPlaylist, removeFromPlaylist, reorderPlaylists, reorderVideos, setPlaylistEmoji }
+  return { playlists, setPlaylists: hydrate, flushSync, createPlaylist, deletePlaylist, addToPlaylist, removeFromPlaylist, reorderPlaylists, reorderVideos, setPlaylistEmoji, renameVideo }
 }

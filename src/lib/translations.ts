@@ -89,6 +89,11 @@ export const translations = {
     // Playlist loop
     loopPlaylist: 'Loop playlist',
     playingFrom: 'Playing from',
+
+    // Playlist management
+    deletePlaylist: 'Delete playlist',
+    deletePlaylistConfirm: 'Delete this playlist?',
+    renameSong: 'Rename',
   },
 
   de: {
@@ -179,6 +184,11 @@ export const translations = {
     // Playlist loop
     loopPlaylist: 'Playlist wiederholen',
     playingFrom: 'Aus',
+
+    // Playlist management
+    deletePlaylist: 'Playlist löschen',
+    deletePlaylistConfirm: 'Diese Playlist löschen?',
+    renameSong: 'Umbenennen',
   },
 
   ja: {
@@ -269,6 +279,11 @@ export const translations = {
     // Playlist loop
     loopPlaylist: 'プレイリストをループ',
     playingFrom: '再生元',
+
+    // Playlist management
+    deletePlaylist: 'プレイリストを削除',
+    deletePlaylistConfirm: 'このプレイリストを削除しますか？',
+    renameSong: '名前を変更',
   },
 
   fr: {
@@ -359,6 +374,11 @@ export const translations = {
     // Playlist loop
     loopPlaylist: 'Boucler la playlist',
     playingFrom: 'Lu depuis',
+
+    // Playlist management
+    deletePlaylist: 'Supprimer la playlist',
+    deletePlaylistConfirm: 'Supprimer cette playlist ?',
+    renameSong: 'Renommer',
   },
 } satisfies Record<Lang, Record<string, string>>
 

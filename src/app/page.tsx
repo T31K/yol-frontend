@@ -57,6 +57,7 @@ import {
   ChevronLeft,
   Volume2,
   VolumeX,
+  Pencil,
 } from 'lucide-react'
 import Image from 'next/image'
 import { NoteEditor } from '@/components/NoteEditor'
@@ -281,6 +282,7 @@ export default function Home() {
     reorderPlaylists,
     reorderVideos,
     setPlaylistEmoji,
+    renameVideo,
   } = usePlaylists(isLoggedIn)
   const {
     folders,
@@ -1023,6 +1025,7 @@ export default function Home() {
             }}
             onRemove={remove}
             reorderVideos={reorderVideos}
+            renameVideo={renameVideo}
             t={t}
           />
         </div>
@@ -1070,6 +1073,7 @@ export default function Home() {
             }}
             onRemove={remove}
             reorderVideos={reorderVideos}
+            renameVideo={renameVideo}
             t={t}
           />
         </aside>
@@ -2019,6 +2023,7 @@ function LibrarySidebar({
   onPlayFromPlaylist,
   onRemove,
   reorderVideos,
+  renameVideo,
   t,
 }: {
   playlists: ReturnType<
@@ -2045,10 +2050,14 @@ function LibrarySidebar({
   onPlayFromPlaylist: (playlistId: string, index: number, videoId: string, title?: string) => void
   onRemove: (videoId: string) => void
   reorderVideos: (playlistId: string, orderedVideoIds: string[]) => void
+  renameVideo: (playlistId: string, videoId: string, newTitle: string) => void
   t: import('@/lib/translations').Translations
 }) {
   // local UI state
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [editingVideoId, setEditingVideoId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState('')
   const [emojiPickerPlaylistId, setEmojiPickerPlaylistId] = useState<
     string | null
   >(null)
@@ -2150,6 +2159,34 @@ function LibrarySidebar({
                 <span className="min-w-0 flex-1 truncate text-xs font-bold text-stone-700">
                   {activePlaylist.name}
                 </span>
+                {confirmDeleteId === activePlaylist.id ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        deletePlaylist(activePlaylist.id)
+                        setActivePlaylistId(null)
+                        setConfirmDeleteId(null)
+                      }}
+                      className="rounded-lg bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white transition-colors hover:bg-red-600"
+                    >
+                      {t.deletePlaylist}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="rounded-lg px-1.5 py-0.5 text-[10px] text-stone-400 transition-colors hover:text-black"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDeleteId(activePlaylist.id)}
+                    className="shrink-0 rounded-lg p-1 text-stone-300 transition-colors hover:bg-red-50 hover:text-red-400"
+                    title={t.deletePlaylist}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
 
               {/* Move to folder select */}
@@ -2227,13 +2264,51 @@ function LibrarySidebar({
                                 alt=""
                                 className="h-8 w-11 shrink-0 rounded-lg object-cover opacity-70 transition-opacity group-hover:opacity-100"
                               />
+                              {editingVideoId === v.videoId ? (
+                                <form
+                                  className="min-w-0 flex-1"
+                                  onSubmit={(e) => {
+                                    e.preventDefault()
+                                    if (editingTitle.trim()) {
+                                      renameVideo(activePlaylist.id, v.videoId, editingTitle.trim())
+                                    }
+                                    setEditingVideoId(null)
+                                  }}
+                                >
+                                  <input
+                                    autoFocus
+                                    type="text"
+                                    value={editingTitle}
+                                    onChange={(e) => setEditingTitle(e.target.value)}
+                                    onBlur={() => {
+                                      if (editingTitle.trim()) {
+                                        renameVideo(activePlaylist.id, v.videoId, editingTitle.trim())
+                                      }
+                                      setEditingVideoId(null)
+                                    }}
+                                    onKeyDown={(e) => { if (e.key === 'Escape') setEditingVideoId(null) }}
+                                    className="w-full rounded-lg border border-stone-300 px-1.5 py-0.5 text-[11px] focus:border-black focus:outline-none"
+                                  />
+                                </form>
+                              ) : (
+                                <button
+                                  onClick={() => onPlayFromPlaylist(activePlaylist.id, idx, v.videoId, v.title)}
+                                  className="min-w-0 flex-1 text-left"
+                                >
+                                  <p className="truncate text-[11px] text-stone-600 transition-colors group-hover:text-black">
+                                    {v.title || v.videoId}
+                                  </p>
+                                </button>
+                              )}
                               <button
-                                onClick={() => onPlayFromPlaylist(activePlaylist.id, idx, v.videoId, v.title)}
-                                className="min-w-0 flex-1 text-left"
+                                onClick={() => {
+                                  setEditingVideoId(v.videoId)
+                                  setEditingTitle(v.title || v.videoId)
+                                }}
+                                className="shrink-0 text-stone-300 opacity-0 transition-all hover:text-stone-500 group-hover:opacity-100"
+                                title={t.renameSong}
                               >
-                                <p className="truncate text-[11px] text-stone-600 transition-colors group-hover:text-black">
-                                  {v.title || v.videoId}
-                                </p>
+                                <Pencil className="h-2.5 w-2.5" />
                               </button>
                               <button
                                 onClick={() => removeFromPlaylist(activePlaylist.id, v.videoId)}

@@ -253,6 +253,11 @@ export default function Home() {
   const [featureText, setFeatureText] = useState('')
   const [featureSubmitting, setFeatureSubmitting] = useState(false)
   const [featureSubmitted, setFeatureSubmitted] = useState(false)
+  const [sponsorOpen, setSponsorOpen] = useState(false)
+  const [sponsorEmail, setSponsorEmail] = useState('')
+  const [sponsorLink, setSponsorLink] = useState('')
+  const [sponsorSubmitting, setSponsorSubmitting] = useState(false)
+  const [sponsorSubmitted, setSponsorSubmitted] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
@@ -1128,10 +1133,91 @@ export default function Home() {
         </div>
       </aside>
 
+      {/* ── TOP NAVBAR ──────────────────────────────────────────── */}
+      <nav className="sticky top-0 z-30 flex items-center gap-3 border-b-2 border-black bg-white px-4 py-2">
+        {/* Mobile library toggle */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="flex items-center gap-1.5 rounded-xl border-2 border-black bg-white px-2.5 py-1.5 text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none lg:hidden"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+        {/* Logo */}
+        <a href="/" className="hidden shrink-0 lg:block">
+          <Image
+            src={darkMode ? '/yol_logo_dark.webp' : '/yol_logo.webp'}
+            alt="YouTube on Loop"
+            width={780}
+            height={400}
+            className="h-9 w-auto"
+          />
+        </a>
+        {/* Search bar */}
+        <form onSubmit={handleSubmit} className="flex min-w-0 flex-1 justify-center">
+          <div className="relative w-full max-w-xl">
+            <div className="flex items-center gap-1 rounded-xl border-2 border-black bg-stone-100 py-1.5 pl-3 pr-1.5">
+              <Search className="h-4 w-4 shrink-0 text-stone-400" />
+              <input
+                ref={urlInputRef}
+                type="text"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder={t.searchPlaceholder}
+                className="min-w-0 flex-1 bg-transparent text-sm placeholder-stone-400 focus:outline-none"
+              />
+              <div className="hidden items-center gap-1 sm:flex">
+                {(['songs', 'channels'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => { setSearchMode(mode); setBrowsingChannel(null) }}
+                    className={`rounded-lg border-2 border-black px-2 py-1 text-[11px] font-bold transition-all ${searchMode === mode ? 'bg-main' : 'bg-white hover:bg-stone-50'}`}
+                  >
+                    {mode === 'songs' ? t.searchSongs : t.searchChannels}
+                  </button>
+                ))}
+              </div>
+              <Button
+                type="submit"
+                className="ml-1 h-7 shrink-0 rounded-lg px-3 text-xs !shadow-none hover:!translate-x-0 hover:!translate-y-0"
+              >
+                <Search className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </form>
+        <SidebarMenu
+          isLoggedIn={isLoggedIn}
+          user={user}
+          login={login}
+          loginWithEmail={loginWithEmail}
+          register={register}
+          logout={() => {
+            flushPlaylists()
+            flushFolders()
+            flushHistory()
+            logout()
+          }}
+          onExport={handleExport}
+          onHelp={() => setHelpOpen(true)}
+          onImport={handleImport}
+          onFeature={() => {
+            setFeatureOpen(true)
+            setFeatureSubmitted(false)
+            setFeatureText('')
+          }}
+          darkMode={darkMode}
+          onToggleDark={toggleDark}
+          lang={lang}
+          setLang={setLang}
+          t={t}
+        />
+      </nav>
+
       {/* ── THREE-COLUMN LAYOUT ───────────────────────────────────── */}
-      <div className="flex min-h-screen w-full gap-4 px-4 py-4">
+      <div className="flex min-h-[calc(100vh-52px)] w-full gap-4 px-4 py-4">
         {/* LEFT SIDEBAR — floating */}
-        <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 flex-col overflow-hidden rounded-2xl border-2 border-black bg-white shadow-base lg:flex lg:w-[220px] xl:w-[260px]">
+        <aside className="sticky top-[68px] hidden h-[calc(100vh-84px)] shrink-0 flex-col overflow-hidden rounded-2xl border-2 border-black bg-white shadow-base lg:flex lg:w-[220px] xl:w-[260px]">
           <LibrarySidebar
             playlists={playlists}
             history={history}
@@ -1178,13 +1264,12 @@ export default function Home() {
         {/* CENTER COLUMN */}
         <div className="flex min-w-0 flex-1 flex-col gap-4 p-6 pt-0">
           <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
-            {/* Mobile library toggle */}
-            {/* ── HEADER ───────────────────────────────────────────────── */}
+            {/* ── HEADER (shown when no video) ───────────────────────── */}
             <div className={`px-4 text-center transition-all duration-300 ${videoId ? 'hidden' : ''}`}>
               <div className="inline-block">
                 <Image
                   src={darkMode ? '/yol_logo_dark.webp' : '/yol_logo.webp'}
-                  alt="YouTubeOnLoop"
+                  alt="YouTube on Loop"
                   width={780}
                   height={400}
                   className="h-14 w-auto md:h-32"
@@ -1194,24 +1279,7 @@ export default function Home() {
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
                 YouTube on Loop
               </h1>
-              <p className="pointer-events-none absolute mt-1.5 text-sm text-stone-500 opacity-0 md:text-base">
-                Paste a link or replace{' '}
-                <code className="rounded-lg border-2 border-black bg-bg/60 px-1.5 py-0.5 text-xs">
-                  youtube.com
-                </code>{' '}
-                with{' '}
-                <code className="rounded-lg border-2 border-black bg-bg/60 px-1.5 py-0.5 text-xs">
-                  youtubeonloop.com
-                </code>
-              </p>
             </div>
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="flex items-center gap-2 self-start rounded-xl border-4 border-black bg-white px-3 py-2 shadow-base transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none lg:hidden"
-            >
-              <Menu className="h-4 w-4" />
-              <span className="text-base font-bold">Library</span>
-            </button>
 
             {/* Back to search + repeat counter */}
             {videoId && (
@@ -1265,29 +1333,8 @@ export default function Home() {
                       <br />
                       paste a YouTube link
                     </p>
-                    <form onSubmit={handleSubmit} className="w-full max-w-lg">
-                      <div className="relative">
-                        <div className="flex items-center gap-2 rounded-xl border-2 border-black bg-stone-100 py-2.5 pl-4 pr-14">
-                          <Search className="h-4 w-4 shrink-0 text-stone-400" />
-                          <input
-                            type="text"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            placeholder={t.searchPlaceholder}
-                            autoFocus
-                            className="min-w-0 flex-1 bg-transparent text-sm placeholder-stone-400 focus:outline-none dark:bg-stone-100"
-                          />
-                        </div>
-                        <Button
-                          type="submit"
-                          className="absolute right-2 top-1/2 h-7 -translate-y-1/2 rounded-lg px-3 text-xs !shadow-none hover:!-translate-y-1/2 hover:!translate-x-0"
-                        >
-                          <Search className="h-3 w-3" />
-                          Search
-                        </Button>
-                      </div>
-                    </form>
-                    <div className="mt-3 flex items-center gap-1.5">
+                    {/* Mobile search mode toggle */}
+                    <div className="flex items-center gap-1.5 sm:hidden">
                       {(['songs', 'channels'] as const).map((mode) => (
                         <button
                           key={mode}
@@ -1298,7 +1345,7 @@ export default function Home() {
                         </button>
                       ))}
                     </div>
-                    <div className="mt-10 inline-flex flex-col gap-1.5 text-[10px]">
+                    <div className="mt-6 inline-flex flex-col gap-1.5 text-[10px]">
                       <div className="flex items-center gap-2">
                         <span className="w-20 text-left font-bold text-stone-400">
                           Paste full link
@@ -1805,14 +1852,38 @@ export default function Home() {
         {/* end center */}
 
         {/* RIGHT ADS SIDEBAR — floating */}
-        <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 flex-col overflow-hidden rounded-2xl border-2 border-black bg-[#FFE8CD] opacity-0 shadow-base xl:flex xl:w-[160px]">
-          <div className="border-b-2 border-black px-3 py-3 text-center">
-            <p className="text-xs font-bold">Advertisement</p>
+        <aside className="sticky top-[68px] hidden h-[calc(100vh-84px)] shrink-0 flex-col overflow-hidden rounded-2xl border-2 border-black bg-[#FFE8CD] shadow-base xl:flex xl:w-[180px]">
+          <div className="border-b-2 border-black px-3 py-2.5 text-center">
+            <p className="text-xs font-bold">Sponsors</p>
           </div>
-          <div className="flex flex-1 items-center justify-center p-4">
-            <p className="text-center text-xs text-stone-400">
-              Ads coming soon 💰
-            </p>
+          <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto p-2.5">
+            {[
+              { href: 'https://www.headshotpro.com/?via=2fa3d0', logo: '/hsp_logo.png', name: 'HeadshotPro', desc: 'Professional business headshots, without a physical photo shoot' },
+              { href: 'https://lookaway.com/?via=timon', logo: '/lookaway_logo.png', name: 'LookAway', desc: 'App for smart breaks & posture nudges for healthy screen habits' },
+            ].map((ad) => (
+              <a
+                key={ad.href}
+                href={ad.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-[120px] flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-white px-3 py-4 text-center transition-all hover:bg-stone-50"
+              >
+                <img src={ad.logo} alt={ad.name} className="h-6 w-auto" />
+                <p className="text-xs font-bold leading-tight">{ad.name}</p>
+                <p className="text-[10px] leading-snug text-stone-500">{ad.desc}</p>
+              </a>
+            ))}
+            {[0, 1].map((i) => (
+              <button
+                key={i}
+                onClick={() => { setSponsorOpen(true); setSponsorSubmitted(false); setSponsorEmail(''); setSponsorLink('') }}
+                className="flex min-h-[120px] w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-black/30 px-3 py-4 text-center transition-colors hover:border-black"
+              >
+                <span className="text-2xl">📢</span>
+                <p className="text-xs font-bold leading-tight text-stone-400">Your ad here</p>
+                <p className="text-[10px] leading-snug text-stone-400">Sponsor us →</p>
+              </button>
+            ))}
           </div>
         </aside>
       </div>
@@ -1901,33 +1972,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* ── ACCOUNT / SETTINGS ── */}
-      <SidebarMenu
-        isLoggedIn={isLoggedIn}
-        user={user}
-        login={login}
-        loginWithEmail={loginWithEmail}
-        register={register}
-        logout={() => {
-          flushPlaylists()
-          flushFolders()
-          flushHistory()
-          logout()
-        }}
-        onExport={handleExport}
-        onHelp={() => setHelpOpen(true)}
-        onImport={handleImport}
-        onFeature={() => {
-          setFeatureOpen(true)
-          setFeatureSubmitted(false)
-          setFeatureText('')
-        }}
-        darkMode={darkMode}
-        onToggleDark={toggleDark}
-        lang={lang}
-        setLang={setLang}
-        t={t}
-      />
+      {/* SidebarMenu moved into navbar */}
 
       {/* Add to playlist dialog */}
       <Dialog open={!!addToPlaylistTarget} onOpenChange={(v) => { if (!v) setAddToPlaylistTarget(null) }}>
@@ -1993,7 +2038,7 @@ export default function Home() {
                   await fetch(`${API_URL}/yol/feature-request`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: featureText.trim() }),
+                    body: JSON.stringify({ message: featureText.trim(), variant: 'feature_request' }),
                   })
                   setFeatureSubmitted(true)
                 } catch {
@@ -2022,6 +2067,82 @@ export default function Home() {
                 className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-black bg-main py-2.5 text-sm font-bold transition-all hover:opacity-90 active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
               >
                 {featureSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Submit'
+                )}
+              </button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={sponsorOpen} onOpenChange={setSponsorOpen}>
+        <DialogContent className="rounded-2xl border-2 border-black bg-white shadow-none sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              Sponsor YouTube on Loop
+            </DialogTitle>
+          </DialogHeader>
+          {sponsorSubmitted ? (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-black bg-main">
+                <Check className="h-6 w-6" />
+              </div>
+              <p className="text-center text-sm font-bold">
+                Thanks! We&apos;ll be in touch.
+              </p>
+              <p className="text-center text-xs text-stone-500">
+                We&apos;ll email you with our traffic stats and payment details.
+              </p>
+            </div>
+          ) : (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault()
+                if (!sponsorEmail.trim() || !sponsorLink.trim()) return
+                setSponsorSubmitting(true)
+                try {
+                  await fetch(`${API_URL}/yol/feature-request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: `Email: ${sponsorEmail.trim()}\nProduct: ${sponsorLink.trim()}`, variant: 'sponsor' }),
+                  })
+                  setSponsorSubmitted(true)
+                } catch {
+                  setSponsorSubmitted(true)
+                } finally {
+                  setSponsorSubmitting(false)
+                }
+              }}
+              className="flex flex-col gap-3 pt-1"
+            >
+              <p className="text-xs text-stone-500">
+                Get your product in front of thousands of music lovers. We&apos;ll email you with our traffic stats and payment details.
+              </p>
+              <input
+                type="email"
+                value={sponsorEmail}
+                onChange={(e) => setSponsorEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                className="w-full rounded-xl border-2 border-black px-3 py-2 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-main"
+                autoFocus
+              />
+              <input
+                type="url"
+                value={sponsorLink}
+                onChange={(e) => setSponsorLink(e.target.value)}
+                placeholder="https://yourproduct.com"
+                required
+                className="w-full rounded-xl border-2 border-black px-3 py-2 text-sm placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-main"
+              />
+              <button
+                type="submit"
+                disabled={!sponsorEmail.trim() || !sponsorLink.trim() || sponsorSubmitting}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-black bg-main py-2.5 text-sm font-bold transition-all hover:opacity-90 active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
+              >
+                {sponsorSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   'Submit'
@@ -2359,20 +2480,18 @@ function LibrarySidebar({
         defaultValue="playlists"
         className="flex flex-1 flex-col overflow-hidden"
       >
-        <TabsList className="mx-3 mb-1 mt-2 grid w-auto grid-cols-2 rounded-xl border-2 border-black bg-stone-100 p-0.5">
+        <TabsList className="grid w-full grid-cols-2 rounded-none border-b-2 border-black bg-transparent p-0 h-auto">
           <TabsTrigger
             value="playlists"
-            className="ml-1 rounded-lg text-xs font-bold hover:bg-main/60 data-[state=active]:bg-main data-[state=active]:shadow-none"
+            className="rounded-none border-r-2 border-black py-2.5 text-xs font-bold data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=inactive]:text-stone-400"
             onClick={() => setActivePlaylistId(null)}
           >
-            <ListMusic className="mr-1.5 h-3 w-3" />
             {t.playlists}
           </TabsTrigger>
           <TabsTrigger
             value="history"
-            className="mr-1 rounded-lg text-xs font-bold hover:bg-main/60 data-[state=active]:bg-main data-[state=active]:shadow-none"
+            className="rounded-none py-2.5 text-xs font-bold data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=inactive]:text-stone-400"
           >
-            <Clock className="mr-1.5 h-3 w-3" />
             {t.history}
           </TabsTrigger>
         </TabsList>
@@ -3224,7 +3343,7 @@ function SidebarMenu({
       <button
         ref={btnRef}
         onClick={handleToggle}
-        className="fixed right-5 top-5 z-50 flex h-9 items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-white pl-2.5 pr-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-main hover:shadow-none"
+        className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl border-2 border-black bg-white pl-2.5 pr-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-main hover:shadow-none"
         title={t.settings}
       >
         <Settings className="h-4 w-4 shrink-0" />
@@ -3385,7 +3504,7 @@ function SidebarMenu({
         createPortal(
           <div
             ref={dropRef}
-            style={{ top: pos.top, right: 20 }}
+            style={{ top: pos.top, right: pos.right }}
             className="fixed z-50 w-48 overflow-hidden rounded-2xl border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
           >
             <div className="p-2">

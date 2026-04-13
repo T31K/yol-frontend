@@ -40,16 +40,11 @@ YOL (You Only Loop) is a YouTube looping web app. Users can:
 
 When the user says **"dev"** (or starts a dev session):
 
-1. Fetch pending requests from the admin API (always live):
-   ```
-   GET https://api.t31k.cloud/yol/admin/requests
-   Authorization: Bearer {YOL_ADMIN_SECRET}
-   ```
-   `YOL_ADMIN_SECRET` is in `.env` in this project root. Use `curl` or similar to call the endpoint.
+1. Fetch pending feature requests by running `node feature.js` in the project root. That script hits `GET https://api.t31k.cloud/yol/admin/requests?variant=feature_request` with the admin bearer token and prints JSON. Always use this script — do NOT call the API with curl (it hangs on HTTP/2). Note: requests have a `variant` field (`feature_request` or `sponsor`). The script only fetches `feature_request` variants.
 2. Skip any requests with status `future` — ignore them entirely.
 3. If there are no pending requests, say "No new requests — time to do some marketing!" and stop.
 4. For each pending request, rate it **1–10 on complexity** (10 = huge, 1 = trivial).
-5. If complexity <= 6: plan carefully, implement it, push, update the request status via `PATCH {NEXT_PUBLIC_API_URL}/yol/admin/requests/{id}` with `{ "status": "done" }`, update `FEATURES.md` — no need to show the plan or ask first.
+5. If complexity <= 6: plan carefully, implement it, push, update the request status by running `node feature.js done <id>`, update `FEATURES.md` — no need to show the plan or ask first. To dismiss a request instead, run `node feature.js dismiss <id>`.
 6. If complexity > 6: briefly describe your approach and ask before implementing.
 7. After implementing, always run `pnpm run build` to verify before pushing.
 

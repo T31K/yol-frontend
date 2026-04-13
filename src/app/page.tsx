@@ -276,6 +276,7 @@ export default function Home() {
   const playlistsRef = useRef<ReturnType<typeof import('@/lib/use-playlists').usePlaylists>['playlists']>([])
   const loopPointsRef = useRef<Record<string, { start: string; end: string }>>({})
   const seekCooldownRef = useRef(false)
+  const loopPointsSyncRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const {
     user,
     isLoggedIn,
@@ -322,6 +323,19 @@ export default function Home() {
   const API_URL_SYNC =
     process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
+  const syncLoopPointsToServer = useCallback(() => {
+    if (loopPointsSyncRef.current) clearTimeout(loopPointsSyncRef.current)
+    loopPointsSyncRef.current = setTimeout(() => {
+      const token = getAuthToken()
+      if (!token) return
+      fetch(`${API_URL_SYNC}/yol/sync/loop-points`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ data: loopPointsRef.current }),
+      }).then(r => { if (r.status === 401) trigger401() })
+    }, 500)
+  }, [API_URL_SYNC])
+
   useEffect(() => {
     if (!isLoggedIn) return
     const token = getAuthToken()
@@ -336,6 +350,11 @@ export default function Home() {
       const localHistory = JSON.parse(
         localStorage.getItem('yol-loop-history') || '[]',
       )
+      let localLoopPoints: Record<string, { start: string; end: string }> = {}
+      try {
+        const raw = localStorage.getItem('yol-loop-points')
+        if (raw) localLoopPoints = JSON.parse(raw)
+      } catch {}
       const hasLocal =
         localPlaylists.length || localFolders.length || localHistory.length
 
@@ -365,6 +384,14 @@ export default function Home() {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ data: localHistory }),
+          }),
+          fetch(`${API_URL_SYNC}/yol/sync/loop-points`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ data: localLoopPoints }),
           }),
         ])
           .then((responses) => {
@@ -412,6 +439,10 @@ export default function Home() {
         setPlaylists(data.playlists ?? [])
         setFolders(data.folders ?? [])
         setHistory(data.history ?? [])
+        if (data.loopPoints) {
+          loopPointsRef.current = data.loopPoints
+          localStorage.setItem('yol-loop-points', JSON.stringify(data.loopPoints))
+        }
         setMigrated()
       })
       .catch((err) => {
@@ -895,6 +926,7 @@ export default function Home() {
       playlists,
       history,
       folders,
+      loopPoints: loopPointsRef.current,
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: 'application/json',
@@ -945,10 +977,22 @@ export default function Home() {
               },
               body: JSON.stringify({ data: parsed.history ?? [] }),
             }),
+            fetch(`${apiUrl}/yol/sync/loop-points`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ data: parsed.loopPoints ?? {} }),
+            }),
           ])
           setPlaylists(parsed.playlists ?? [])
           setFolders(parsed.folders ?? [])
           setHistory(parsed.history ?? [])
+          if (parsed.loopPoints) {
+            loopPointsRef.current = parsed.loopPoints
+            localStorage.setItem('yol-loop-points', JSON.stringify(parsed.loopPoints))
+          }
           window.location.reload()
           return
         }
@@ -964,6 +1008,8 @@ export default function Home() {
           )
         if (parsed.folders)
           localStorage.setItem('yol-folders', JSON.stringify(parsed.folders))
+        if (parsed.loopPoints)
+          localStorage.setItem('yol-loop-points', JSON.stringify(parsed.loopPoints))
         window.location.reload()
       } catch {
         alert('Invalid file. Please use a yol-data.json export.')
@@ -1146,7 +1192,7 @@ export default function Home() {
                 />
               </div>
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-                Play any YouTube video on loop
+                YouTube on Loop
               </h1>
               <p className="pointer-events-none absolute mt-1.5 text-sm text-stone-500 opacity-0 md:text-base">
                 Paste a link or replace{' '}
@@ -1671,6 +1717,7 @@ export default function Home() {
                             if (videoId) {
                               loopPointsRef.current = { ...loopPointsRef.current, [videoId]: { start: newStart, end: newEnd } }
                               localStorage.setItem('yol-loop-points', JSON.stringify(loopPointsRef.current))
+                              syncLoopPointsToServer()
                             }
                             if (
                               playerRef.current &&

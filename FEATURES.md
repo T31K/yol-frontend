@@ -21,7 +21,7 @@
 | ✅ | Export / import data backup | JSON file |
 | ✅ | Keyboard shortcuts | F = focus search, Space = play/pause, etc. |
 | ✅ | /watch page | Pre-loads video from URL param |
-| ✅ | Save A/B loop points per video | Persists to localStorage, restored on revisit |
+| ✅ | Save A/B loop points per video | Persists to localStorage, syncs across devices for logged-in users |
 | ✅ | Loop playlist mode | Context bar with prev/next nav + loop toggle when playing from a playlist |
 | ✅ | Volume control | Slider in controls, persisted to localStorage |
 | ✅ | Shuffle mode (persistent toggle) | Shuffle button stays on; advances to random tracks; works with loop playlist |

@@ -28,6 +28,7 @@
 | ✅ | Delete playlists | Trash icon in playlist drill-down view with inline confirmation |
 | ✅ | Rename songs in playlist | Pencil icon on hover for inline title editing |
 | ✅ | Channel search & video browsing | Search for YouTube channels, browse their videos (Latest/Popular/Oldest), play or add to playlists |
+| ✅ | Background tab playback fix | Playlist/shuffle advances play next video even when tab is not focused |
 
 ## Pending (from user requests)
 

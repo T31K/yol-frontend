@@ -62,6 +62,7 @@ import {
 import Image from 'next/image'
 import { NoteEditor } from '@/components/NoteEditor'
 import ReactSlider from 'react-slider'
+import { FaDiscord } from 'react-icons/fa'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { Kbd } from '@/components/ui/kbd'
 import { useLoopHistory } from '@/lib/use-loop-history'
@@ -99,6 +100,7 @@ interface YTPlayer {
   getCurrentTime: () => number
   getDuration: () => number
   destroy: () => void
+  loadVideoById: (args: { videoId: string; startSeconds?: number }) => void
 }
 
 interface YTPlayerEvent {
@@ -281,6 +283,7 @@ export default function Home() {
   const playlistsRef = useRef<ReturnType<typeof import('@/lib/use-playlists').usePlaylists>['playlists']>([])
   const loopPointsRef = useRef<Record<string, { start: string; end: string }>>({})
   const seekCooldownRef = useRef(false)
+  const internalNavRef = useRef(false)
   const loopPointsSyncRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const {
     user,
@@ -524,38 +527,36 @@ export default function Home() {
     if (!plist || plist.videos.length === 0) return false
     const total = plist.videos.length
 
+    const loadNext = (video: { videoId: string; title?: string }, index: number) => {
+      const pts = loopPointsRef.current[video.videoId]
+      const startSec = pts?.start ? parseInt(pts.start) : 0
+      setActivePlaylistIndex(index)
+      internalNavRef.current = true
+      setVideoId(video.videoId)
+      setUrl(`https://youtube.com/watch?v=${video.videoId}`)
+      setLoopCount(0)
+      setIsPlaying(true)
+      upsert(video.videoId, 0, video.title)
+      // Load in existing player to avoid autoplay restrictions in background tabs
+      if (playerRef.current?.loadVideoById) {
+        playerRef.current.loadVideoById({ videoId: video.videoId, startSeconds: startSec })
+      }
+    }
+
     if (shuffleModeRef.current && total > 1) {
       // Pick random index different from current
       let nextIdx
       do { nextIdx = Math.floor(Math.random() * total) } while (nextIdx === idx)
-      const next = plist.videos[nextIdx]
-      setActivePlaylistIndex(nextIdx)
-      setVideoId(next.videoId)
-      setUrl(`https://youtube.com/watch?v=${next.videoId}`)
-      setLoopCount(0)
-      setIsPlaying(true)
-      upsert(next.videoId, 0, next.title)
+      loadNext(plist.videos[nextIdx], nextIdx)
       return true
     }
 
     const nextIdx = idx + 1
     if (nextIdx < total) {
-      const next = plist.videos[nextIdx]
-      setActivePlaylistIndex(nextIdx)
-      setVideoId(next.videoId)
-      setUrl(`https://youtube.com/watch?v=${next.videoId}`)
-      setLoopCount(0)
-      setIsPlaying(true)
-      upsert(next.videoId, 0, next.title)
+      loadNext(plist.videos[nextIdx], nextIdx)
       return true
     } else if (loopPlaylistModeRef.current) {
-      const first = plist.videos[0]
-      setActivePlaylistIndex(0)
-      setVideoId(first.videoId)
-      setUrl(`https://youtube.com/watch?v=${first.videoId}`)
-      setLoopCount(0)
-      setIsPlaying(true)
-      upsert(first.videoId, 0, first.title)
+      loadNext(plist.videos[0], 0)
       return true
     }
     return false
@@ -567,12 +568,18 @@ export default function Home() {
     const prevIdx = activePlaylistIndex - 1
     if (prevIdx < 0) return
     const prev = plist.videos[prevIdx]
+    const pts = loopPointsRef.current[prev.videoId]
+    const startSec = pts?.start ? parseInt(pts.start) : 0
     setActivePlaylistIndex(prevIdx)
+    internalNavRef.current = true
     setVideoId(prev.videoId)
     setUrl(`https://youtube.com/watch?v=${prev.videoId}`)
     setLoopCount(0)
     setIsPlaying(true)
     upsert(prev.videoId, 0, prev.title)
+    if (playerRef.current?.loadVideoById) {
+      playerRef.current.loadVideoById({ videoId: prev.videoId, startSeconds: startSec })
+    }
   }, [activePlaylistId, activePlaylistIndex, playlists, upsert])
 
   const nextPlaylistVideo = useCallback(() => {
@@ -592,12 +599,18 @@ export default function Home() {
     }
 
     const next = plist.videos[nextIdx]
+    const pts = loopPointsRef.current[next.videoId]
+    const startSec = pts?.start ? parseInt(pts.start) : 0
     setActivePlaylistIndex(nextIdx)
+    internalNavRef.current = true
     setVideoId(next.videoId)
     setUrl(`https://youtube.com/watch?v=${next.videoId}`)
     setLoopCount(0)
     setIsPlaying(true)
     upsert(next.videoId, 0, next.title)
+    if (playerRef.current?.loadVideoById) {
+      playerRef.current.loadVideoById({ videoId: next.videoId, startSeconds: startSec })
+    }
   }, [activePlaylistId, activePlaylistIndex, playlists, upsert, shuffleMode, loopPlaylistMode])
 
   const currentTitle = history.find((h) => h.videoId === videoId)?.title
@@ -705,6 +718,12 @@ export default function Home() {
 
   useEffect(() => {
     if (!apiReady || !videoId || !containerRef.current) return
+    // Skip player recreation if video was loaded internally (playlist nav) —
+    // reusing the existing player avoids autoplay restrictions in background tabs
+    if (internalNavRef.current) {
+      internalNavRef.current = false
+      return
+    }
     if (playerRef.current) playerRef.current.destroy()
     playerRef.current = new window.YT.Player(containerRef.current, {
       videoId,
@@ -1186,6 +1205,15 @@ export default function Home() {
             </div>
           </div>
         </form>
+        <a
+          href="https://discord.gg/yAwv9ESCX3"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-[#5865F2] hover:text-white hover:shadow-none"
+          title="Join our Discord"
+        >
+          <FaDiscord className="h-4 w-4" />
+        </a>
         <SidebarMenu
           isLoggedIn={isLoggedIn}
           user={user}

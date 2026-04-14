@@ -736,6 +736,8 @@ export default function Home() {
       events: { onStateChange: onPlayerStateChange, onReady: onPlayerReady },
     })
     return () => {
+      // Skip destroy during internal playlist navigation — player is being reused
+      if (internalNavRef.current) return
       if (playerRef.current) {
         playerRef.current.destroy()
         playerRef.current = null

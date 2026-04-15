@@ -1703,18 +1703,23 @@ export default function Home() {
                         title={volume === 0 ? 'Unmute' : 'Mute'}
                       >
                         {volume === 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-                        <span className="text-xs tabular-nums w-7 text-right">{volume}%</span>
                       </button>
                       <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-150 absolute right-0 top-full z-50 pt-1.5">
                         <div className="flex items-center gap-2.5 rounded-xl border-2 border-black bg-white px-3 py-2.5 shadow-base">
                           <ReactSlider
                             className="relative flex h-5 w-28 items-center"
                             thumbClassName="h-4 w-4 rounded-full border-2 border-black bg-white cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-main z-10"
-                            trackClassName="h-2 rounded-full"
                             min={0}
                             max={100}
                             value={volume}
                             onChange={(v) => setVolume(v as number)}
+                            renderTrack={({ key, ...props }, state) => (
+                              <div
+                                key={key}
+                                {...props}
+                                className={`h-2 rounded-full ${state.index === 0 ? 'bg-main border-2 border-black' : 'bg-stone-200 border-2 border-black'}`}
+                              />
+                            )}
                           />
                         </div>
                       </div>

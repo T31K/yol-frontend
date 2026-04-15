@@ -1694,29 +1694,31 @@ export default function Home() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
 
-                  {/* Volume row */}
-                  <div className="flex items-center gap-3 border-t-2 border-black px-4 py-2">
-                    <button
-                      onClick={() => setVolume((v) => (v === 0 ? (preMuteVolumeRef.current || 50) : 0))}
-                      className="shrink-0 text-stone-500 hover:text-black transition-colors"
-                      title={volume === 0 ? 'Unmute' : 'Mute'}
-                    >
-                      {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                    </button>
-                    <ReactSlider
-                      className="relative flex h-5 flex-1 items-center"
-                      thumbClassName="h-4 w-4 rounded-full border-2 border-black bg-white cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-main z-10"
-                      trackClassName="h-2 rounded-full"
-                      min={0}
-                      max={100}
-                      value={volume}
-                      onChange={(v) => setVolume(v as number)}
-                    />
-                    <span className="w-8 shrink-0 text-right text-[11px] font-medium text-stone-500">
-                      {volume}%
-                    </span>
+                    {/* Volume */}
+                    <div className="group relative shrink-0">
+                      <button
+                        onClick={() => setVolume((v) => (v === 0 ? (preMuteVolumeRef.current || 50) : 0))}
+                        className="flex h-9 items-center gap-1.5 rounded-xl border-2 border-black bg-white px-2.5 text-sm font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none shadow-base"
+                        title={volume === 0 ? 'Unmute' : 'Mute'}
+                      >
+                        {volume === 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                        <span className="text-xs tabular-nums w-7 text-right">{volume}%</span>
+                      </button>
+                      <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-150 absolute right-0 top-full z-50 pt-1.5">
+                        <div className="flex items-center gap-2.5 rounded-xl border-2 border-black bg-white px-3 py-2.5 shadow-base">
+                          <ReactSlider
+                            className="relative flex h-5 w-28 items-center"
+                            thumbClassName="h-4 w-4 rounded-full border-2 border-black bg-white cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-main z-10"
+                            trackClassName="h-2 rounded-full"
+                            min={0}
+                            max={100}
+                            value={volume}
+                            onChange={(v) => setVolume(v as number)}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Bottom row: A–B slider (only when video loaded) */}

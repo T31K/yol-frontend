@@ -280,6 +280,8 @@ export default function Home() {
   const loopPlaylistModeRef = useRef(false)
   const shuffleModeRef = useRef(false)
   const volumeRef = useRef(100)
+  const preMuteVolumeRef = useRef(100)
+  const volumeRestoredRef = useRef(false)
   const playlistsRef = useRef<ReturnType<typeof import('@/lib/use-playlists').usePlaylists>['playlists']>([])
   const loopPointsRef = useRef<Record<string, { start: string; end: string }>>({})
   const seekCooldownRef = useRef(false)
@@ -483,13 +485,16 @@ export default function Home() {
     const stored = localStorage.getItem('yol-volume')
     if (stored !== null) {
       const v = parseInt(stored)
-      if (!isNaN(v)) { setVolume(v); volumeRef.current = v }
+      if (!isNaN(v)) { setVolume(v); volumeRef.current = v; preMuteVolumeRef.current = v }
     }
+    volumeRestoredRef.current = true
   }, [])
 
-  // Apply volume to player + persist
+  // Apply volume to player + persist (skip first render to avoid overwriting stored value)
   useEffect(() => {
+    if (!volumeRestoredRef.current) return
     volumeRef.current = volume
+    if (volume > 0) preMuteVolumeRef.current = volume
     playerRef.current?.setVolume(volume)
     localStorage.setItem('yol-volume', volume.toString())
   }, [volume])
@@ -1694,7 +1699,7 @@ export default function Home() {
                   {/* Volume row */}
                   <div className="flex items-center gap-3 border-t-2 border-black px-4 py-2">
                     <button
-                      onClick={() => setVolume((v) => (v === 0 ? 100 : 0))}
+                      onClick={() => setVolume((v) => (v === 0 ? (preMuteVolumeRef.current || 50) : 0))}
                       className="shrink-0 text-stone-500 hover:text-black transition-colors"
                       title={volume === 0 ? 'Unmute' : 'Mute'}
                     >

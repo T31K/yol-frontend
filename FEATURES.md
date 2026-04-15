@@ -23,7 +23,7 @@
 | ✅ | /watch page | Pre-loads video from URL param |
 | ✅ | Save A/B loop points per video | Persists to localStorage, syncs across devices for logged-in users |
 | ✅ | Loop playlist mode | Context bar with prev/next nav + loop toggle when playing from a playlist |
-| ✅ | Volume control | Slider in controls, persisted to localStorage |
+| ✅ | Volume control & memory | Slider in controls, persisted to localStorage; mute/unmute restores previous level |
 | ✅ | Shuffle mode (persistent toggle) | Shuffle button stays on; advances to random tracks; works with loop playlist |
 | ✅ | Delete playlists | Trash icon in playlist drill-down view with inline confirmation |
 | ✅ | Rename songs in playlist | Pencil icon on hover for inline title editing |

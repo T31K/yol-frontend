@@ -24,7 +24,6 @@ import {
   Pause,
   SkipBack,
   SkipForward,
-  Gauge,
   RefreshCw,
   RotateCcw,
   X,
@@ -65,6 +64,7 @@ import ReactSlider from 'react-slider'
 import { FaDiscord } from 'react-icons/fa'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { Kbd } from '@/components/ui/kbd'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { useLoopHistory } from '@/lib/use-loop-history'
 import { usePlaylists } from '@/lib/use-playlists'
 import { useFolders } from '@/lib/use-folders'
@@ -181,7 +181,6 @@ function extractVideoId(url: string): string | null {
   return null
 }
 
-const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 export default function Home() {
@@ -910,8 +909,7 @@ export default function Home() {
     'equal,plus',
     () => {
       if (!videoId) return
-      const i = PLAYBACK_SPEEDS.indexOf(playbackSpeed)
-      const next = PLAYBACK_SPEEDS[Math.min(i + 1, PLAYBACK_SPEEDS.length - 1)]
+      const next = Math.min(Math.round((playbackSpeed + 0.05) * 100) / 100, 2)
       setPlaybackSpeed(next)
       playerRef.current?.setPlaybackRate(next)
     },
@@ -921,8 +919,7 @@ export default function Home() {
     'minus',
     () => {
       if (!videoId) return
-      const i = PLAYBACK_SPEEDS.indexOf(playbackSpeed)
-      const prev = PLAYBACK_SPEEDS[Math.max(i - 1, 0)]
+      const prev = Math.max(Math.round((playbackSpeed - 0.05) * 100) / 100, 0.25)
       setPlaybackSpeed(prev)
       playerRef.current?.setPlaybackRate(prev)
     },
@@ -1622,22 +1619,36 @@ export default function Home() {
                   {/* Playback row: repeat+shuffle | buttons | speed */}
                   <div className="flex items-center gap-2 px-4 py-3">
                     {/* Repeat + Shuffle */}
+                    <TooltipProvider delayDuration={200}>
                     <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        onClick={() => setLoopPlaylistMode((v) => !v)}
-                        title={t.loopPlaylist}
-                        className={`flex items-center justify-center rounded-xl border-2 border-black p-2 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${loopPlaylistMode ? 'bg-main shadow-base' : 'bg-white shadow-base'}`}
-                      >
-                        <Repeat className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setShuffleMode((v) => !v)}
-                        title="Shuffle"
-                        className={`flex items-center justify-center rounded-xl border-2 border-black p-2 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${shuffleMode ? 'bg-main shadow-base' : 'bg-white shadow-base'}`}
-                      >
-                        <Shuffle className="h-4 w-4" />
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => setLoopPlaylistMode((v) => !v)}
+                            className={`flex items-center justify-center rounded-xl border-2 border-black p-2 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${loopPlaylistMode ? 'bg-main shadow-base' : 'bg-white shadow-base'}`}
+                          >
+                            <Repeat className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="rounded-lg border-2 border-black bg-white text-xs font-medium">
+                          {t.loopPlaylist}
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => setShuffleMode((v) => !v)}
+                            className={`flex items-center justify-center rounded-xl border-2 border-black p-2 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${shuffleMode ? 'bg-main shadow-base' : 'bg-white shadow-base'}`}
+                          >
+                            <Shuffle className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="rounded-lg border-2 border-black bg-white text-xs font-medium">
+                          Shuffle
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
+                    </TooltipProvider>
 
                     <div className="flex flex-1 items-center justify-center gap-2">
                       <Button
@@ -1674,26 +1685,47 @@ export default function Home() {
                     </div>
 
                     {/* Speed */}
-                    <Select
-                      value={playbackSpeed.toString()}
-                      onValueChange={(v) => {
-                        const s = parseFloat(v)
-                        setPlaybackSpeed(s)
-                        playerRef.current?.setPlaybackRate(s)
-                      }}
-                    >
-                      <SelectTrigger className="h-9 w-30 shrink-0 grow-0 rounded-xl border-2 border-black bg-white text-sm">
-                        <Gauge className="h-3.5 w-3.5" />
-                        <SelectValue placeholder="1x" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-2 border-black bg-white">
-                        {PLAYBACK_SPEEDS.map((s) => (
-                          <SelectItem key={s} value={s.toString()}>
-                            {s}x
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="group/speed relative shrink-0">
+                      <button
+                        onClick={() => {
+                          setPlaybackSpeed(1)
+                          playerRef.current?.setPlaybackRate(1)
+                        }}
+                        className="flex h-9 items-center gap-1.5 rounded-xl border-2 border-black bg-white px-2.5 text-sm font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none shadow-base"
+                        title={`Speed: ${playbackSpeed}x (click to reset)`}
+                      >
+                        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M 2.5 12.5 A 5.5 5.5 0 0 1 13.5 12.5" />
+                          <line x1="8" y1="12.5" x2="8" y2="6" transform={`rotate(${((playbackSpeed - 0.25) / 1.75) * 180 - 90}, 8, 12.5)`} />
+                          <circle cx="8" cy="12.5" r="1.2" fill="currentColor" stroke="none" />
+                        </svg>
+                      </button>
+                      <div className="invisible opacity-0 group-hover/speed:visible group-hover/speed:opacity-100 transition-all duration-150 absolute right-0 top-full z-50 pt-1.5">
+                        <div className="flex items-center gap-2.5 rounded-xl border-2 border-black bg-white px-3 py-2.5 shadow-base">
+                          <ReactSlider
+                            className="relative flex h-5 w-28 items-center"
+                            thumbClassName="h-4 w-4 rounded-full border-2 border-black bg-white cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-main z-10"
+                            min={25}
+                            max={200}
+                            step={5}
+                            value={Math.round(playbackSpeed * 100)}
+                            onChange={(v) => {
+                              const s = (v as number) / 100
+                              setPlaybackSpeed(s)
+                              playerRef.current?.setPlaybackRate(s)
+                            }}
+                            renderTrack={({ key, ...props }, state) => (
+                              <div
+                                key={key}
+                                {...props}
+                                className={`h-2 rounded-full ${state.index === 0 ? 'bg-main border-2 border-black' : 'bg-stone-200 border-2 border-black'}`}
+                              />
+                            )}
+                          />
+                          <span className="text-xs font-bold tabular-nums w-8 text-right">{playbackSpeed.toFixed(2)}x</span>
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Volume */}
                     <div className="group relative shrink-0">
@@ -2267,7 +2299,7 @@ export default function Home() {
                 />
                 <Row
                   label="Speed"
-                  value="Adjust playback speed from 0.25× to 2×."
+                  value="Adjust playback speed from 0.25× to 2× in 0.05× steps."
                 />
                 <Row label="Skip" value="← → buttons jump ±10 seconds." />
               </Section>
@@ -2325,8 +2357,8 @@ export default function Home() {
                     { keys: ['→'], description: 'Skip forward 10s' },
                     { keys: ['Shift', '←'], description: 'Skip back 30s' },
                     { keys: ['Shift', '→'], description: 'Skip forward 30s' },
-                    { keys: ['+'], description: 'Speed up +0.25×' },
-                    { keys: ['-'], description: 'Speed down −0.25×' },
+                    { keys: ['+'], description: 'Speed up +0.05×' },
+                    { keys: ['-'], description: 'Speed down −0.05×' },
                     { keys: ['0'], description: 'Reset speed to 1×' },
                     { keys: ['F'], description: 'Focus search / URL bar' },
                     {

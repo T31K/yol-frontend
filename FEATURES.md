@@ -5,7 +5,7 @@
 | # | Feature | Notes |
 |---|---------|-------|
 | ✅ | YouTube looping with A/B loop points | Core feature |
-| ✅ | Playback speed control | |
+| ✅ | Playback speed control | Icon-only hover slider, 0.05x steps (0.25×–2×), dynamic speedometer icon |
 | ✅ | Repeat count (loop N times then stop) | Persists across reloads |
 | ✅ | Create & manage playlists | |
 | ✅ | Drag-to-reorder videos within a playlist | Using @hello-pangea/dnd |

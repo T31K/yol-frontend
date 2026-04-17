@@ -24,7 +24,8 @@
 | ✅ | Save A/B loop points per video | Persists to localStorage, syncs across devices for logged-in users |
 | ✅ | Loop playlist mode | Context bar with prev/next nav + loop toggle when playing from a playlist |
 | ✅ | Volume control & memory | Slider in controls, persisted to localStorage; mute/unmute restores previous level |
-| ✅ | Shuffle mode (persistent toggle) | Shuffle button stays on; advances to random tracks; works with loop playlist |
+| ✅ | Shuffle mode (persistent toggle) | Shuffle button stays on; uses Fisher-Yates queue so every song plays once before any repeat |
+| ✅ | Loop song mode | Repeat1 toggle beside loop playlist; loops current video in place when playing from a playlist; mutually exclusive with loop playlist |
 | ✅ | Delete playlists | Trash icon in playlist drill-down view with inline confirmation |
 | ✅ | Rename songs in playlist | Pencil icon on hover for inline title editing |
 | ✅ | Channel search & video browsing | Search for YouTube channels, browse their videos (Latest/Popular/Oldest), play or add to playlists |

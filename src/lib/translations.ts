@@ -88,6 +88,7 @@ export const translations = {
 
     // Playlist loop
     loopPlaylist: 'Loop playlist',
+    loopSong: 'Loop song',
     playingFrom: 'Playing from',
 
     // Playlist management
@@ -191,6 +192,7 @@ export const translations = {
 
     // Playlist loop
     loopPlaylist: 'Playlist wiederholen',
+    loopSong: 'Song wiederholen',
     playingFrom: 'Aus',
 
     // Playlist management
@@ -294,6 +296,7 @@ export const translations = {
 
     // Playlist loop
     loopPlaylist: 'プレイリストをループ',
+    loopSong: '曲をループ',
     playingFrom: '再生元',
 
     // Playlist management
@@ -397,6 +400,7 @@ export const translations = {
 
     // Playlist loop
     loopPlaylist: 'Boucler la playlist',
+    loopSong: 'Boucler le titre',
     playingFrom: 'Lu depuis',
 
     // Playlist management

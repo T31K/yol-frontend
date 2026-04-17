@@ -53,6 +53,7 @@ import {
   Shuffle,
   Link,
   Repeat,
+  Repeat1,
   ChevronLeft,
   Volume2,
   VolumeX,
@@ -264,6 +265,7 @@ export default function Home() {
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
   const [activePlaylistIndex, setActivePlaylistIndex] = useState(0)
   const [loopPlaylistMode, setLoopPlaylistMode] = useState(false)
+  const [loopSongMode, setLoopSongMode] = useState(false)
   const [shuffleMode, setShuffleMode] = useState(false)
   const [volume, setVolume] = useState(100)
   const playerRef = useRef<YTPlayer | null>(null)
@@ -277,7 +279,9 @@ export default function Home() {
   const activePlaylistIdRef = useRef<string | null>(null)
   const activePlaylistIndexRef = useRef(0)
   const loopPlaylistModeRef = useRef(false)
+  const loopSongModeRef = useRef(false)
   const shuffleModeRef = useRef(false)
+  const shuffleQueueRef = useRef<number[]>([])
   const volumeRef = useRef(100)
   const preMuteVolumeRef = useRef(100)
   const volumeRestoredRef = useRef(false)
@@ -473,10 +477,18 @@ export default function Home() {
   useEffect(() => {
     endTimeRef.current = endTime
   }, [endTime])
-  useEffect(() => { activePlaylistIdRef.current = activePlaylistId }, [activePlaylistId])
+  useEffect(() => {
+    activePlaylistIdRef.current = activePlaylistId
+    shuffleQueueRef.current = []
+  }, [activePlaylistId])
   useEffect(() => { activePlaylistIndexRef.current = activePlaylistIndex }, [activePlaylistIndex])
   useEffect(() => { loopPlaylistModeRef.current = loopPlaylistMode }, [loopPlaylistMode])
-  useEffect(() => { shuffleModeRef.current = shuffleMode }, [shuffleMode])
+  useEffect(() => { loopSongModeRef.current = loopSongMode }, [loopSongMode])
+  useEffect(() => {
+    shuffleModeRef.current = shuffleMode
+    // Reset the shuffle queue when toggling — a fresh queue is built on next advance
+    shuffleQueueRef.current = []
+  }, [shuffleMode])
   useEffect(() => { playlistsRef.current = playlists }, [playlists])
 
   // Restore volume from localStorage on mount
@@ -523,8 +535,27 @@ export default function Home() {
     }
   }, [videoId])
 
+  // Pick the next index under shuffle mode. Uses a queue of all indices so every song
+  // plays once before any repeats; refills (excluding current) when exhausted.
+  const pickNextShuffleIndex = useCallback((total: number, current: number): number => {
+    if (total <= 1) return 0
+    shuffleQueueRef.current = shuffleQueueRef.current.filter((i) => i < total)
+    if (shuffleQueueRef.current.length === 0) {
+      const pool: number[] = []
+      for (let i = 0; i < total; i++) if (i !== current) pool.push(i)
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[pool[i], pool[j]] = [pool[j], pool[i]]
+      }
+      shuffleQueueRef.current = pool
+    }
+    return shuffleQueueRef.current.shift() as number
+  }, [])
+
   // Advance to the next video in the active playlist. Returns true if advanced, false if playlist ended.
   const advancePlaylist = useCallback((): boolean => {
+    // Loop-song mode short-circuits: caller's fallback loops the current video
+    if (loopSongModeRef.current) return false
     const pid = activePlaylistIdRef.current
     const idx = activePlaylistIndexRef.current
     const plist = playlistsRef.current.find((p) => p.id === pid)
@@ -548,9 +579,7 @@ export default function Home() {
     }
 
     if (shuffleModeRef.current && total > 1) {
-      // Pick random index different from current
-      let nextIdx
-      do { nextIdx = Math.floor(Math.random() * total) } while (nextIdx === idx)
+      const nextIdx = pickNextShuffleIndex(total, idx)
       loadNext(plist.videos[nextIdx], nextIdx)
       return true
     }
@@ -564,7 +593,7 @@ export default function Home() {
       return true
     }
     return false
-  }, [upsert])
+  }, [upsert, pickNextShuffleIndex])
 
   const prevPlaylistVideo = useCallback(() => {
     const plist = playlists.find((p) => p.id === activePlaylistId)
@@ -593,7 +622,7 @@ export default function Home() {
 
     let nextIdx: number
     if (shuffleMode && total > 1) {
-      do { nextIdx = Math.floor(Math.random() * total) } while (nextIdx === activePlaylistIndex)
+      nextIdx = pickNextShuffleIndex(total, activePlaylistIndex)
     } else {
       nextIdx = activePlaylistIndex + 1
       if (nextIdx >= total) {
@@ -615,7 +644,7 @@ export default function Home() {
     if (playerRef.current?.loadVideoById) {
       playerRef.current.loadVideoById({ videoId: next.videoId, startSeconds: startSec })
     }
-  }, [activePlaylistId, activePlaylistIndex, playlists, upsert, shuffleMode, loopPlaylistMode])
+  }, [activePlaylistId, activePlaylistIndex, playlists, upsert, shuffleMode, loopPlaylistMode, pickNextShuffleIndex])
 
   const currentTitle = history.find((h) => h.videoId === videoId)?.title
 
@@ -1624,7 +1653,32 @@ export default function Home() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
-                            onClick={() => setLoopPlaylistMode((v) => !v)}
+                            onClick={() => {
+                              setLoopSongMode((v) => {
+                                const next = !v
+                                if (next) setLoopPlaylistMode(false)
+                                return next
+                              })
+                            }}
+                            className={`flex items-center justify-center rounded-xl border-2 border-black p-2 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${loopSongMode ? 'bg-main shadow-base' : 'bg-white shadow-base'}`}
+                          >
+                            <Repeat1 className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="rounded-lg border-2 border-black bg-white text-xs font-medium">
+                          {t.loopSong}
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => {
+                              setLoopPlaylistMode((v) => {
+                                const next = !v
+                                if (next) setLoopSongMode(false)
+                                return next
+                              })
+                            }}
                             className={`flex items-center justify-center rounded-xl border-2 border-black p-2 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${loopPlaylistMode ? 'bg-main shadow-base' : 'bg-white shadow-base'}`}
                           >
                             <Repeat className="h-4 w-4" />

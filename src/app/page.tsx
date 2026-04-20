@@ -491,24 +491,33 @@ export default function Home() {
   }, [shuffleMode])
   useEffect(() => { playlistsRef.current = playlists }, [playlists])
 
-  // Restore volume from localStorage on mount
+  // Restore volume from localStorage on mount. Persistence on subsequent
+  // changes happens inside updateVolume so it writes synchronously with the
+  // state change instead of racing against this mount effect.
   useEffect(() => {
     const stored = localStorage.getItem('yol-volume')
     if (stored !== null) {
       const v = parseInt(stored)
-      if (!isNaN(v)) { setVolume(v); volumeRef.current = v; preMuteVolumeRef.current = v }
+      if (!isNaN(v)) {
+        setVolume(v)
+        volumeRef.current = v
+        preMuteVolumeRef.current = v
+        playerRef.current?.setVolume(v)
+      }
     }
     volumeRestoredRef.current = true
   }, [])
 
-  // Apply volume to player + persist (skip first render to avoid overwriting stored value)
-  useEffect(() => {
-    if (!volumeRestoredRef.current) return
-    volumeRef.current = volume
-    if (volume > 0) preMuteVolumeRef.current = volume
-    playerRef.current?.setVolume(volume)
-    localStorage.setItem('yol-volume', volume.toString())
-  }, [volume])
+  const updateVolume = useCallback((next: number | ((v: number) => number)) => {
+    setVolume((prev) => {
+      const v = typeof next === 'function' ? next(prev) : next
+      volumeRef.current = v
+      if (v > 0) preMuteVolumeRef.current = v
+      playerRef.current?.setVolume(v)
+      try { localStorage.setItem('yol-volume', v.toString()) } catch {}
+      return v
+    })
+  }, [])
 
   // Load loop points from localStorage on mount
   useEffect(() => {
@@ -1784,7 +1793,7 @@ export default function Home() {
                     {/* Volume */}
                     <div className="group relative shrink-0">
                       <button
-                        onClick={() => setVolume((v) => (v === 0 ? (preMuteVolumeRef.current || 50) : 0))}
+                        onClick={() => updateVolume((v) => (v === 0 ? (preMuteVolumeRef.current || 50) : 0))}
                         className="flex h-9 items-center gap-1.5 rounded-xl border-2 border-black bg-white px-2.5 text-sm font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none shadow-base"
                         title={volume === 0 ? 'Unmute' : 'Mute'}
                       >
@@ -1798,7 +1807,7 @@ export default function Home() {
                             min={0}
                             max={100}
                             value={volume}
-                            onChange={(v) => setVolume(v as number)}
+                            onChange={(v) => updateVolume(v as number)}
                             renderTrack={({ key, ...props }, state) => (
                               <div
                                 key={key}

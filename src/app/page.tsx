@@ -100,6 +100,7 @@ interface YTPlayer {
   setVolume: (volume: number) => void
   getCurrentTime: () => number
   getDuration: () => number
+  getPlayerState: () => number
   destroy: () => void
   loadVideoById: (args: { videoId: string; startSeconds?: number }) => void
 }
@@ -289,6 +290,7 @@ export default function Home() {
   const loopPointsRef = useRef<Record<string, { start: string; end: string }>>({})
   const seekCooldownRef = useRef(false)
   const internalNavRef = useRef(false)
+  const videoIdRef = useRef<string | null>(null)
   const loopPointsSyncRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const {
     user,
@@ -455,6 +457,17 @@ export default function Home() {
         if (data.loopPoints) {
           loopPointsRef.current = data.loopPoints
           localStorage.setItem('yol-loop-points', JSON.stringify(data.loopPoints))
+          // Re-apply to the currently-loaded video so sync from another device
+          // takes effect immediately without needing a video reload.
+          if (videoIdRef.current) {
+            const pts = data.loopPoints[videoIdRef.current]
+            if (pts) {
+              setStartTime(pts.start ?? '')
+              setEndTime(pts.end ?? '')
+              startTimeRef.current = pts.start ?? ''
+              endTimeRef.current = pts.end ?? ''
+            }
+          }
         }
         setMigrated()
       })
@@ -471,6 +484,7 @@ export default function Home() {
   }, [isLoggedIn])
 
   // Keep refs in sync so callbacks never stale-close over startTime/endTime
+  useEffect(() => { videoIdRef.current = videoId }, [videoId])
   useEffect(() => {
     startTimeRef.current = startTime
   }, [startTime])
@@ -527,20 +541,28 @@ export default function Home() {
     }
   }, [])
 
-  // Restore loop points when video changes
+  // Restore loop points when video changes. Sync refs synchronously in the
+  // same pass so they can't be stale between the setVideoId and the ref
+  // sync effects firing on the next render commit.
   useEffect(() => {
     if (!videoId) {
       setStartTime('')
       setEndTime('')
+      startTimeRef.current = ''
+      endTimeRef.current = ''
       return
     }
     const pts = loopPointsRef.current[videoId]
     if (pts) {
       setStartTime(pts.start)
       setEndTime(pts.end)
+      startTimeRef.current = pts.start
+      endTimeRef.current = pts.end
     } else {
       setStartTime('')
       setEndTime('')
+      startTimeRef.current = ''
+      endTimeRef.current = ''
     }
   }, [videoId])
 
@@ -672,44 +694,41 @@ export default function Home() {
     window.onYouTubeIframeAPIReady = () => setApiReady(true)
   }, [])
 
+  // Poll the player while a video is loaded — do NOT gate on React's
+  // isPlaying state, because YouTube can miss the PLAYING state-change event
+  // (autoplay after loadVideoById, background tabs), leaving isPlaying stuck
+  // at false and the B-point never enforced. Gate on the player's own state
+  // instead. Read loop points from loopPointsRef (keyed by current videoId)
+  // so the check can't race against stale startTimeRef/endTimeRef during a
+  // video switch.
   useEffect(() => {
-    if (isPlaying && playerRef.current) {
-      timeUpdateRef.current = setInterval(() => {
-        if (!playerRef.current) return
-        const ct = playerRef.current.getCurrentTime?.() || 0
-        const dur = playerRef.current.getDuration?.() || 0
-        setCurrentTime(ct)
-        setDuration(dur)
-        // Enforce B (end) point
-        const end = endTimeRef.current ? parseInt(endTimeRef.current) : 0
-        if (end > 0 && ct >= end && !seekCooldownRef.current) {
-          seekCooldownRef.current = true
-          setTimeout(() => { seekCooldownRef.current = false }, 300)
-          if (activePlaylistIdRef.current) {
-            const advanced = advancePlaylist()
-            if (!advanced) {
-              setLoopCount((prev) => prev + 1)
-              playerRef.current?.seekTo(
-                startTimeRef.current ? parseInt(startTimeRef.current) : 0,
-                true,
-              )
-              playerRef.current?.playVideo()
-            }
-          } else {
-            setLoopCount((prev) => prev + 1)
-            playerRef.current?.seekTo(
-              startTimeRef.current ? parseInt(startTimeRef.current) : 0,
-              true,
-            )
-            playerRef.current?.playVideo()
-          }
-        }
-      }, 100)
+    if (!videoId) return
+    const tick = () => {
+      const p = playerRef.current
+      if (!p || typeof p.getPlayerState !== 'function') return
+      if (p.getPlayerState() !== 1) return // 1 = PLAYING
+      const ct = p.getCurrentTime?.() || 0
+      const dur = p.getDuration?.() || 0
+      setCurrentTime(ct)
+      setDuration(dur)
+      const pts = loopPointsRef.current[videoId]
+      const end = pts?.end ? parseInt(pts.end) : 0
+      if (!(end > 0) || seekCooldownRef.current) return
+      if (ct < end) return
+      seekCooldownRef.current = true
+      setTimeout(() => { seekCooldownRef.current = false }, 300)
+      const start = pts?.start ? parseInt(pts.start) : 0
+      if (activePlaylistIdRef.current) {
+        const advanced = advancePlaylist()
+        if (advanced) return
+      }
+      setLoopCount((prev) => prev + 1)
+      p.seekTo(start, true)
+      p.playVideo()
     }
-    return () => {
-      if (timeUpdateRef.current) clearInterval(timeUpdateRef.current)
-    }
-  }, [isPlaying, advancePlaylist])
+    const id = setInterval(tick, 100)
+    return () => clearInterval(id)
+  }, [videoId, advancePlaylist])
 
   const onPlayerStateChange = useCallback(
     (event: YTPlayerEvent) => {

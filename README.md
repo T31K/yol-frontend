@@ -1,39 +1,41 @@
 <img src="public/preview.png" />
 
-# Saas
+# YOL — You Only Loop
 
-Saas is a neobrutalism-styled nextjs tailwind template for saas landing pages.
+A YouTube looping web app. Loop any video with precise A/B points, control playback speed, repeat counts, playlists with folders, watch history, multi-language UI, and Google sign-in to sync across devices.
+
+Live at [youtubeonloop.com](https://youtubeonloop.com).
+
+## Stack
+
+- Next.js 14 (app router) + TypeScript + Tailwind (neobrutalism theme)
+- Drag-and-drop via `@hello-pangea/dnd`
+- Custom backend at `NEXT_PUBLIC_API_URL` (default `http://localhost:3001`)
+- i18n: EN / DE / JA / FR
 
 ## Get started
 
-[Create a new repo](https://github.com/neobrutalism-templates/saas/generate) from this template.
-
-### Installation
-
-This template uses `pnpm` package manager so make sure you have it installed.
-
-To install all dependencies run:
+This project uses `pnpm`. Install dependencies:
 
 ```bash
 pnpm i
 ```
 
-To run the app locally:
+Run locally:
 
 ```bash
 pnpm run dev
 ```
 
-### Config
+Build:
 
-- Inside `layout.tsx` update the metadata
-- Update the `favicon.ico`
-- Inside `page.tsx` update the content
+```bash
+pnpm run build
+```
 
-### Sections
+## Project notes
 
-All content is split into sections so you can edit it more easily.
-
-### Styling
-
-To change the styling visit [styling docs](https://neobrutalism-components.vercel.app/docs/styling), and copy the desired styling to tailwind config like it's shown in the styling docs.
+- App UI lives in `src/app/page.tsx`
+- Playlist / folder / auth / language hooks in `src/lib/`
+- Translation strings in `src/lib/translations.ts`
+- Feature status tracked in `FEATURES.md`

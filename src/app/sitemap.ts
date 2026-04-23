@@ -1,7 +1,26 @@
 import type { MetadataRoute } from 'next'
 import { songs } from '@/data/songs'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
+interface PublicSummary {
+  slug: string
+  updatedAt: string
+}
+
+async function fetchPublicPlaylists(): Promise<PublicSummary[]> {
+  try {
+    const res = await fetch(`${API_URL}/yol/public-playlists?limit=500`, {
+      next: { revalidate: 3600 },
+    })
+    if (!res.ok) return []
+    return (await res.json()) as PublicSummary[]
+  } catch {
+    return []
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://youtubeonloop.com'
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -30,6 +49,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/playlists`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/for/guitar-practice`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
@@ -41,6 +66,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    {
+      url: `${baseUrl}/about`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/contact`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
   ]
 
   const loopPages: MetadataRoute.Sitemap = songs.map((song) => ({
@@ -50,5 +99,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }))
 
-  return [...staticPages, ...loopPages]
+  const publicPlaylists = await fetchPublicPlaylists()
+  const publicPages: MetadataRoute.Sitemap = publicPlaylists.map((p) => ({
+    url: `${baseUrl}/p/${p.slug}`,
+    lastModified: p.updatedAt ? new Date(p.updatedAt) : new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.6,
+  }))
+
+  return [...staticPages, ...loopPages, ...publicPages]
 }

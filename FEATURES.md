@@ -30,6 +30,8 @@
 | ✅ | Rename songs in playlist | Pencil icon on hover for inline title editing |
 | ✅ | Channel search & video browsing | Search for YouTube channels, browse their videos (Latest/Popular/Oldest), play or add to playlists |
 | ✅ | Background tab playback fix | Playlist/shuffle advances play next video even when tab is not focused |
+| ✅ | GEO foundation: schema, legal, llms.txt | Site-wide Organization/WebSite/WebApplication JSON-LD; /about, /contact, /privacy, /terms; public/llms.txt; robots.ts AI-crawler allowlist; security headers in next.config.mjs |
+| ✅ | Public playlists — share + pSEO | Per-playlist Make Public toggle (login required); SSR /p/[slug] pages with embedded player + sidebar + Save to my playlists CTA; /playlists discovery index; sitemap auto-includes public slugs; loop points snapshotted into the public version |
 
 ## Pending (from user requests)
 

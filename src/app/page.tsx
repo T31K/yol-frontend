@@ -58,6 +58,9 @@ import {
   Volume2,
   VolumeX,
   Pencil,
+  Share2,
+  Copy,
+  Globe,
 } from 'lucide-react'
 import Image from 'next/image'
 import { NoteEditor } from '@/components/NoteEditor'
@@ -69,6 +72,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/comp
 import { useLoopHistory } from '@/lib/use-loop-history'
 import { usePlaylists } from '@/lib/use-playlists'
 import { useFolders } from '@/lib/use-folders'
+import { usePublicPlaylists, publicUrl } from '@/lib/use-public-playlists'
 import { useLanguage } from '@/lib/use-language'
 import type { Lang } from '@/lib/translations'
 import {
@@ -334,6 +338,11 @@ export default function Home() {
     reorderFolders,
     setFolderEmoji,
   } = useFolders(isLoggedIn)
+  const {
+    publicMap,
+    publish: publishPlaylist,
+    unpublish: unpublishPlaylist,
+  } = usePublicPlaylists(isLoggedIn)
 
   const API_URL_SYNC =
     process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
@@ -1208,6 +1217,11 @@ export default function Home() {
             onRemove={remove}
             reorderVideos={reorderVideos}
             renameVideo={renameVideo}
+            isLoggedIn={isLoggedIn}
+            publicMap={publicMap}
+            publishPlaylist={publishPlaylist}
+            unpublishPlaylist={unpublishPlaylist}
+            getLoopPoints={() => loopPointsRef.current}
             t={t}
           />
         </div>
@@ -1346,6 +1360,11 @@ export default function Home() {
             onRemove={remove}
             reorderVideos={reorderVideos}
             renameVideo={renameVideo}
+            isLoggedIn={isLoggedIn}
+            publicMap={publicMap}
+            publishPlaylist={publishPlaylist}
+            unpublishPlaylist={unpublishPlaylist}
+            getLoopPoints={() => loopPointsRef.current}
             t={t}
           />
         </aside>
@@ -2081,6 +2100,27 @@ export default function Home() {
               </div>
               <div>
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-stone-400">
+                  Company
+                </p>
+                <div className="flex flex-col gap-1">
+                  {[
+                    ['/about', 'About'],
+                    ['/contact', 'Contact'],
+                    ['/privacy', 'Privacy'],
+                    ['/terms', 'Terms'],
+                  ].map(([href, label]) => (
+                    <a
+                      key={href}
+                      href={href}
+                      className="text-sm text-stone-600 hover:text-black hover:underline"
+                    >
+                      {label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-stone-400">
                   More Tools
                 </p>
                 <div className="flex flex-col gap-1">
@@ -2538,6 +2578,11 @@ function LibrarySidebar({
   onRemove,
   reorderVideos,
   renameVideo,
+  isLoggedIn,
+  publicMap,
+  publishPlaylist,
+  unpublishPlaylist,
+  getLoopPoints,
   t,
 }: {
   playlists: ReturnType<
@@ -2565,11 +2610,22 @@ function LibrarySidebar({
   onRemove: (videoId: string) => void
   reorderVideos: (playlistId: string, orderedVideoIds: string[]) => void
   renameVideo: (playlistId: string, videoId: string, newTitle: string) => void
+  isLoggedIn: boolean
+  publicMap: import('@/lib/use-public-playlists').PublicMap
+  publishPlaylist: (
+    playlist: import('@/lib/use-playlists').Playlist,
+    loopPoints: Record<string, { start: string; end: string }>,
+  ) => Promise<string | null>
+  unpublishPlaylist: (playlistId: string) => Promise<boolean>
+  getLoopPoints: () => Record<string, { start: string; end: string }>
   t: import('@/lib/translations').Translations
 }) {
   // local UI state
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [shareOpenId, setShareOpenId] = useState<string | null>(null)
+  const [shareBusy, setShareBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [editingVideoId, setEditingVideoId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
   const [emojiPickerPlaylistId, setEmojiPickerPlaylistId] = useState<
@@ -2691,15 +2747,113 @@ function LibrarySidebar({
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => setConfirmDeleteId(activePlaylist.id)}
-                    className="shrink-0 rounded-lg p-1 text-stone-300 transition-colors hover:bg-red-50 hover:text-red-400"
-                    title={t.deletePlaylist}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        if (!isLoggedIn) {
+                          alert(t.shareSignInPrompt)
+                          return
+                        }
+                        setShareOpenId(shareOpenId === activePlaylist.id ? null : activePlaylist.id)
+                        setCopied(false)
+                      }}
+                      className={`shrink-0 rounded-lg p-1 transition-colors ${
+                        publicMap[activePlaylist.id]
+                          ? 'text-green-600 hover:bg-green-50'
+                          : 'text-stone-300 hover:bg-stone-100 hover:text-black'
+                      }`}
+                      title={publicMap[activePlaylist.id] ? t.shareManagePublic : t.share}
+                    >
+                      {publicMap[activePlaylist.id] ? (
+                        <Globe className="h-3.5 w-3.5" />
+                      ) : (
+                        <Share2 className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteId(activePlaylist.id)}
+                      className="shrink-0 rounded-lg p-1 text-stone-300 transition-colors hover:bg-red-50 hover:text-red-400"
+                      title={t.deletePlaylist}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </>
                 )}
               </div>
+
+              {/* Share panel */}
+              {shareOpenId === activePlaylist.id && (
+                <div className="mx-2 mb-2 rounded-xl border-2 border-black bg-bg/50 p-2 text-xs">
+                  {publicMap[activePlaylist.id] ? (
+                    <>
+                      <div className="mb-1.5 flex items-center gap-1 font-bold text-green-700">
+                        <Globe className="h-3 w-3" /> {t.sharePublicNow}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <input
+                          readOnly
+                          value={publicUrl(publicMap[activePlaylist.id].slug)}
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                          className="min-w-0 flex-1 rounded border border-stone-300 bg-white px-1.5 py-1 text-[10px]"
+                        />
+                        <button
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(publicUrl(publicMap[activePlaylist.id].slug))
+                              setCopied(true)
+                              setTimeout(() => setCopied(false), 1500)
+                            } catch {}
+                          }}
+                          className="shrink-0 rounded border border-black bg-main px-1.5 py-1 transition-all hover:translate-x-[1px] hover:translate-y-[1px]"
+                          title={t.copyLink}
+                        >
+                          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        </button>
+                      </div>
+                      <div className="mt-1.5 flex gap-1">
+                        <button
+                          disabled={shareBusy}
+                          onClick={async () => {
+                            setShareBusy(true)
+                            await publishPlaylist(activePlaylist, getLoopPoints())
+                            setShareBusy(false)
+                          }}
+                          className="flex-1 rounded border border-stone-300 bg-white px-1.5 py-1 text-[10px] hover:border-black disabled:opacity-50"
+                        >
+                          {shareBusy ? '…' : t.republish}
+                        </button>
+                        <button
+                          disabled={shareBusy}
+                          onClick={async () => {
+                            setShareBusy(true)
+                            await unpublishPlaylist(activePlaylist.id)
+                            setShareBusy(false)
+                            setShareOpenId(null)
+                          }}
+                          className="flex-1 rounded border border-stone-300 bg-white px-1.5 py-1 text-[10px] text-red-500 hover:border-red-400 disabled:opacity-50"
+                        >
+                          {t.unpublish}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mb-1.5 text-stone-600">{t.shareIntro}</p>
+                      <button
+                        disabled={shareBusy || activePlaylist.videos.length === 0}
+                        onClick={async () => {
+                          setShareBusy(true)
+                          await publishPlaylist(activePlaylist, getLoopPoints())
+                          setShareBusy(false)
+                        }}
+                        className="w-full rounded border-2 border-black bg-main px-2 py-1 text-[11px] font-bold transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none disabled:opacity-50"
+                      >
+                        {shareBusy ? '…' : activePlaylist.videos.length === 0 ? t.shareNeedsVideos : t.makePublic}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* Move to folder select */}
               {folders.length > 0 && (

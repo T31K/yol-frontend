@@ -96,6 +96,18 @@ export const translations = {
     deletePlaylistConfirm: 'Delete this playlist?',
     renameSong: 'Rename',
 
+    // Sharing
+    share: 'Share',
+    shareManagePublic: 'Manage public link',
+    shareSignInPrompt: 'Sign in to share playlists publicly.',
+    shareIntro: 'Make this playlist public to share it with anyone — your loop points are included.',
+    shareNeedsVideos: 'Add a video first',
+    makePublic: 'Make public',
+    sharePublicNow: 'Public — anyone with the link can play it',
+    copyLink: 'Copy link',
+    republish: 'Republish',
+    unpublish: 'Unpublish',
+
     // Channel search
     searchSongs: 'Songs',
     searchChannels: 'Channels',
@@ -199,6 +211,18 @@ export const translations = {
     deletePlaylist: 'Playlist löschen',
     deletePlaylistConfirm: 'Diese Playlist löschen?',
     renameSong: 'Umbenennen',
+
+    // Sharing
+    share: 'Teilen',
+    shareManagePublic: 'Öffentlichen Link verwalten',
+    shareSignInPrompt: 'Melde dich an, um Playlists öffentlich zu teilen.',
+    shareIntro: 'Mache diese Playlist öffentlich, um sie mit anderen zu teilen — deine Loop-Punkte sind enthalten.',
+    shareNeedsVideos: 'Füge zuerst ein Video hinzu',
+    makePublic: 'Öffentlich machen',
+    sharePublicNow: 'Öffentlich — jeder mit dem Link kann sie abspielen',
+    copyLink: 'Link kopieren',
+    republish: 'Neu veröffentlichen',
+    unpublish: 'Privat machen',
 
     // Channel search
     searchSongs: 'Songs',
@@ -304,6 +328,18 @@ export const translations = {
     deletePlaylistConfirm: 'このプレイリストを削除しますか？',
     renameSong: '名前を変更',
 
+    // Sharing
+    share: '共有',
+    shareManagePublic: '公開リンクを管理',
+    shareSignInPrompt: 'プレイリストを公開で共有するにはサインインしてください。',
+    shareIntro: 'このプレイリストを公開して誰でも共有できます — ループポイントも含まれます。',
+    shareNeedsVideos: '先に動画を追加してください',
+    makePublic: '公開する',
+    sharePublicNow: '公開中 — リンクを知っている人なら誰でも再生できます',
+    copyLink: 'リンクをコピー',
+    republish: '再公開',
+    unpublish: '非公開にする',
+
     // Channel search
     searchSongs: '曲',
     searchChannels: 'チャンネル',
@@ -407,6 +443,18 @@ export const translations = {
     deletePlaylist: 'Supprimer la playlist',
     deletePlaylistConfirm: 'Supprimer cette playlist ?',
     renameSong: 'Renommer',
+
+    // Sharing
+    share: 'Partager',
+    shareManagePublic: 'Gérer le lien public',
+    shareSignInPrompt: 'Connectez-vous pour partager vos playlists publiquement.',
+    shareIntro: 'Rendez cette playlist publique pour la partager — vos points de boucle sont inclus.',
+    shareNeedsVideos: 'Ajoutez d’abord une vidéo',
+    makePublic: 'Rendre publique',
+    sharePublicNow: 'Publique — toute personne ayant le lien peut la lire',
+    copyLink: 'Copier le lien',
+    republish: 'Republier',
+    unpublish: 'Rendre privée',
 
     // Channel search
     searchSongs: 'Chansons',

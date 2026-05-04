@@ -687,6 +687,25 @@ export default function Home() {
     }
   }, [activePlaylistId, activePlaylistIndex, playlists, upsert, shuffleMode, loopPlaylistMode, pickNextShuffleIndex])
 
+  const jumpToPlaylistIndex = useCallback((index: number) => {
+    const plist = playlists.find((p) => p.id === activePlaylistId)
+    if (!plist || index < 0 || index >= plist.videos.length) return
+    if (index === activePlaylistIndex) return
+    const target = plist.videos[index]
+    const pts = loopPointsRef.current[target.videoId]
+    const startSec = pts?.start ? parseInt(pts.start) : 0
+    setActivePlaylistIndex(index)
+    internalNavRef.current = true
+    setVideoId(target.videoId)
+    setUrl(`https://youtube.com/watch?v=${target.videoId}`)
+    setLoopCount(0)
+    setIsPlaying(true)
+    upsert(target.videoId, 0, target.title)
+    if (playerRef.current?.loadVideoById) {
+      playerRef.current.loadVideoById({ videoId: target.videoId, startSeconds: startSec })
+    }
+  }, [activePlaylistId, activePlaylistIndex, playlists, upsert])
+
   const currentTitle = history.find((h) => h.videoId === videoId)?.title
 
   useEffect(() => { setAddSelectKey((k) => k + 1) }, [videoId])
@@ -1966,6 +1985,66 @@ export default function Home() {
                     </div>
                   )}
                 </div>
+
+                {/* Playlist queue (shown when playing from a playlist) */}
+                {activePlaylistId && (() => {
+                  const queuePlaylist = playlists.find((p) => p.id === activePlaylistId)
+                  if (!queuePlaylist || queuePlaylist.videos.length === 0) return null
+                  return (
+                    <div className="overflow-hidden rounded-2xl border-4 border-black bg-white shadow-base">
+                      <div className="flex items-center gap-2 border-b-2 border-black px-4 py-2.5">
+                        <ListMusic className="h-3.5 w-3.5 shrink-0 text-stone-500" />
+                        <span className="truncate text-xs font-bold text-stone-600">
+                          {queuePlaylist.emoji ? `${queuePlaylist.emoji} ` : ''}{queuePlaylist.name}
+                        </span>
+                        <span className="ml-auto text-[10px] font-bold tabular-nums text-stone-400">
+                          {activePlaylistIndex + 1} / {queuePlaylist.videos.length}
+                        </span>
+                      </div>
+                      <ul className="max-h-72 overflow-y-auto">
+                        {queuePlaylist.videos.map((v, i) => {
+                          const isCurrent = i === activePlaylistIndex
+                          return (
+                            <li
+                              key={`${v.videoId}-${i}`}
+                              ref={isCurrent ? (el) => { el?.scrollIntoView({ block: 'nearest' }) } : undefined}
+                            >
+                              <button
+                                onClick={() => jumpToPlaylistIndex(i)}
+                                className={`group flex w-full items-center gap-3 border-b-2 border-black/10 px-3 py-2 text-left transition-colors last:border-b-0 ${isCurrent ? 'bg-main' : 'bg-white hover:bg-stone-50'}`}
+                              >
+                                <span className={`w-6 shrink-0 text-center text-[11px] font-bold tabular-nums ${isCurrent ? 'text-black' : 'text-stone-400'}`}>
+                                  {isCurrent ? (
+                                    isPlaying ? (
+                                      <span className="inline-flex items-end justify-center gap-[2px] h-3">
+                                        <span className="w-[2px] origin-bottom bg-black animate-[eqbar_0.9s_ease-in-out_infinite] [animation-delay:-0.4s]" style={{ height: '40%' }} />
+                                        <span className="w-[2px] origin-bottom bg-black animate-[eqbar_0.9s_ease-in-out_infinite] [animation-delay:-0.2s]" style={{ height: '70%' }} />
+                                        <span className="w-[2px] origin-bottom bg-black animate-[eqbar_0.9s_ease-in-out_infinite]" style={{ height: '55%' }} />
+                                      </span>
+                                    ) : (
+                                      <Play className="mx-auto h-3 w-3" />
+                                    )
+                                  ) : (
+                                    i + 1
+                                  )}
+                                </span>
+                                <img
+                                  src={`https://i.ytimg.com/vi/${v.videoId}/default.jpg`}
+                                  alt=""
+                                  loading="lazy"
+                                  className="h-9 w-12 shrink-0 rounded-md border-2 border-black object-cover"
+                                />
+                                <span className={`flex-1 truncate text-xs font-medium ${isCurrent ? 'font-bold' : 'text-stone-700'}`}>
+                                  {v.title || v.videoId}
+                                </span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )
+                })()}
 
                 {/* Add to playlist */}
                 <div className="rounded-2xl border-4 border-black bg-white p-3 shadow-base">

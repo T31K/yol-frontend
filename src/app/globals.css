@@ -24,6 +24,11 @@ html {
   transform-origin: bottom center;
 }
 
+@keyframes eqbar {
+  0%, 100% { transform: scaleY(0.4); }
+  50%      { transform: scaleY(1); }
+}
+
 /* ── Dark mode overrides ──────────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;

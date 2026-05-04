@@ -2,7 +2,7 @@
 
 ## What is YOL?
 
-YOL (You Only Loop) is a YouTube looping web app. Users can:
+YOL (Youtube On Loop) is a YouTube looping web app. Users can:
 - Loop any YouTube video with precise A/B loop points
 - Control playback speed
 - Set a repeat count (loop N times then stop)
@@ -40,13 +40,23 @@ YOL (You Only Loop) is a YouTube looping web app. Users can:
 
 When the user says **"dev"** (or starts a dev session):
 
-1. Fetch pending feature requests by running `node feature.js` in the project root. That script hits `GET https://api.t31k.cloud/yol/admin/requests?variant=feature_request` with the admin bearer token and prints JSON. Always use this script — do NOT call the API with curl (it hangs on HTTP/2). Note: requests have a `variant` field (`feature_request` or `sponsor`). The script only fetches `feature_request` variants.
-2. Skip any requests with status `future` — ignore them entirely.
-3. If there are no pending requests, say "No new requests — time to do some marketing!" and stop.
-4. For each pending request, rate it **1–10 on complexity** (10 = huge, 1 = trivial).
-5. If complexity <= 6: plan carefully, implement it, push, update the request status by running `node feature.js done <id>`, update `FEATURES.md` — no need to show the plan or ask first. To dismiss a request instead, run `node feature.js dismiss <id>`.
-6. If complexity > 6: briefly describe your approach and ask before implementing.
-7. After implementing, always run `pnpm run build` to verify before pushing.
+1. **Fetch from BOTH sources in parallel:**
+   - Pending feature requests: `node feature.js` — hits `GET https://api.t31k.cloud/yol/admin/requests?variant=feature_request` with the admin bearer token and prints JSON. Always use this script — do NOT call the API with curl (it hangs on HTTP/2). For sponsor requests, run `node feature.js sponsor`.
+   - Open Discord `#feedback` forum threads: `node discord.js inbox` — lists every active forum thread that is **not** tagged `closed`, with id, title, tags, and first message. These are user feedback posted directly in Discord (so they have no admin DB id).
+2. Skip any feature-request rows with status `future` — ignore them entirely.
+3. **Cross-check Discord threads against the admin requests + `FEATURES.md`.** If an open Discord thread is already represented (same idea), don't double-process it — just note it. Otherwise treat it as a new pending item.
+4. If there are no pending items from EITHER source, say "No new requests — time to do some marketing!" and stop.
+5. For each pending item, rate it **1–10 on complexity** (10 = huge, 1 = trivial).
+6. **Posting to Discord:**
+   - For admin-DB requests, post to the forum BEFORE implementing: `node discord.js thread "<concise title>" "<original request quoted with >>" "feature,new"` (or `bug,new` for bug reports). The script prints the new thread ID — remember it for the shipped reply. Keep the title short and problem-focused.
+   - For items that came from Discord directly, the thread already exists — skip thread creation and reuse the thread id from `inbox`.
+7. If complexity <= 6: plan carefully, implement it, push, update `FEATURES.md` — no need to show the plan or ask first.
+8. If complexity > 6: briefly describe your approach and ask before implementing.
+9. Always run `pnpm run build` to verify before pushing.
+10. **After shipping**, for each thread (whether you created it or it came from Discord):
+    - Post a reply with what was shipped: `node discord.js reply <thread_id> "Shipped! 🚀\n\n<short note on what changed>"`
+    - Swap tags to closed: `node discord.js tags <thread_id> "feature,closed"` (or `bug,closed`).
+11. If the item came from the admin DB, mark it done: `node feature.js done <id>`. To dismiss instead, run `node feature.js dismiss <id>` (in that case skip the shipped reply, or post a short "not moving forward" note before closing tags). Discord-only items have no admin DB id — closing the Discord thread is enough.
 
 ## Frontend & Design
 

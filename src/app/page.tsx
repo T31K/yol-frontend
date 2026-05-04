@@ -2140,7 +2140,7 @@ export default function Home() {
               { href: 'https://www.headshotpro.com/?via=2fa3d0', logo: '/hsp_logo.png', name: 'HeadshotPro', desc: 'Professional business headshots, without a physical photo shoot' },
               { href: 'https://lookaway.com/?via=timon', logo: '/lookaway_logo.png', name: 'LookAway', desc: 'App for smart breaks & posture nudges for healthy screen habits' },
               { href: 'https://datafa.st/?via=t31kx', logo: '/datafast_logo.png', name: 'DataFast', desc: 'Revenue-first analytics. Understand which marketing channels actually bring paying customers' },
-              { href: 'https://refer.testimonial.to/timon-wong', logo: '/testimonialto_logo.webp', name: 'Testimonial', desc: 'Collect text & video testimonials from your customers in minutes — no dev needed' },
+              { href: 'https://refer.testimonial.to/timon-wong', logo: '/testimonialto_logo.webp', name: 'Testimonial', desc: 'Collect text and video testimonials from your customers in minutes' },
             ].map((ad) => (
               <a
                 key={ad.href}

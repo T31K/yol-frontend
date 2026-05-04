@@ -276,6 +276,7 @@ export default function Home() {
   const [volume, setVolume] = useState(100)
   const playerRef = useRef<YTPlayer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const queueListRef = useRef<HTMLUListElement>(null)
   const urlInputRef = useRef<HTMLInputElement>(null)
   const timeUpdateRef = useRef<NodeJS.Timeout | null>(null)
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -705,6 +706,20 @@ export default function Home() {
       playerRef.current.loadVideoById({ videoId: target.videoId, startSeconds: startSec })
     }
   }, [activePlaylistId, activePlaylistIndex, playlists, upsert])
+
+  // Keep the active queue row visible WITHIN the queue's own scroll container
+  // only — never scrollIntoView, which would yank the page on unrelated renders
+  useEffect(() => {
+    if (!activePlaylistId) return
+    const ul = queueListRef.current
+    if (!ul) return
+    const row = ul.children[activePlaylistIndex] as HTMLElement | undefined
+    if (!row) return
+    const top = row.offsetTop
+    const bottom = top + row.offsetHeight
+    if (top < ul.scrollTop) ul.scrollTop = top
+    else if (bottom > ul.scrollTop + ul.clientHeight) ul.scrollTop = bottom - ul.clientHeight
+  }, [activePlaylistId, activePlaylistIndex])
 
   const currentTitle = history.find((h) => h.videoId === videoId)?.title
 
@@ -2001,14 +2016,11 @@ export default function Home() {
                           {activePlaylistIndex + 1} / {queuePlaylist.videos.length}
                         </span>
                       </div>
-                      <ul className="max-h-72 overflow-y-auto">
+                      <ul ref={queueListRef} className="max-h-72 overflow-y-auto">
                         {queuePlaylist.videos.map((v, i) => {
                           const isCurrent = i === activePlaylistIndex
                           return (
-                            <li
-                              key={`${v.videoId}-${i}`}
-                              ref={isCurrent ? (el) => { el?.scrollIntoView({ block: 'nearest' }) } : undefined}
-                            >
+                            <li key={`${v.videoId}-${i}`}>
                               <button
                                 onClick={() => jumpToPlaylistIndex(i)}
                                 className={`group flex w-full items-center gap-3 border-b-2 border-black/10 px-3 py-2 text-left transition-colors last:border-b-0 ${isCurrent ? 'bg-main' : 'bg-white hover:bg-stone-50'}`}

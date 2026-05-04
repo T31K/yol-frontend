@@ -2139,6 +2139,7 @@ export default function Home() {
             {[
               { href: 'https://www.headshotpro.com/?via=2fa3d0', logo: '/hsp_logo.png', name: 'HeadshotPro', desc: 'Professional business headshots, without a physical photo shoot' },
               { href: 'https://lookaway.com/?via=timon', logo: '/lookaway_logo.png', name: 'LookAway', desc: 'App for smart breaks & posture nudges for healthy screen habits' },
+              { href: 'https://datafa.st/?via=t31kx', logo: '/datafast_logo.png', name: 'DataFast', desc: 'Revenue-first analytics — see which marketing channels actually bring paying customers' },
             ].map((ad) => (
               <a
                 key={ad.href}

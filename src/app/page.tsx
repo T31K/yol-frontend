@@ -105,6 +105,7 @@ interface YTPlayer {
   getCurrentTime: () => number
   getDuration: () => number
   getPlayerState: () => number
+  getVideoData: () => { title?: string; video_id?: string; author?: string }
   destroy: () => void
   loadVideoById: (args: { videoId: string; startSeconds?: number }) => void
 }
@@ -770,7 +771,11 @@ export default function Home() {
         )
         playerRef.current?.playVideo()
       }
-      if (event.data === 1) setIsPlaying(true)
+      if (event.data === 1) {
+        setIsPlaying(true)
+        const title = playerRef.current?.getVideoData?.()?.title
+        if (title) document.title = `${title} on Loop | YOL`
+      }
       if (event.data === 2) setIsPlaying(false)
     },
     [videoId, upsert, advancePlaylist],
@@ -783,8 +788,16 @@ export default function Home() {
       if (startTimeRef.current) {
         playerRef.current.seekTo(parseInt(startTimeRef.current), true)
       }
+      const title = playerRef.current.getVideoData?.()?.title
+      if (title) document.title = `${title} on Loop | YOL`
     }
   }, [])
+
+  useEffect(() => {
+    if (!videoId) {
+      document.title = 'YouTube on Loop — Loop & Repeat Any YouTube Video Free'
+    }
+  }, [videoId])
 
   useEffect(() => {
     if (!apiReady || !videoId || !containerRef.current) return

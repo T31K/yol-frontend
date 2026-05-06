@@ -34,6 +34,7 @@
 | ✅ | Public playlists — share + pSEO | Per-playlist Make Public toggle (login required); SSR /p/[slug] pages with embedded player + sidebar + Save to my playlists CTA; /playlists discovery index; sitemap auto-includes public slugs; loop points snapshotted into the public version |
 | ✅ | Dynamic page title with video name | document.title updates to "{video title} on Loop \| YOL" so bookmarks show what they point to |
 | ✅ | Playlist queue below video | When playing from a playlist, a scrollable queue with thumbnails shows under the controls; current row highlighted with animated EQ bars; click any row to jump |
+| ✅ | pSEO use-case pages | /for/studying, /for/sleep, /for/dance-practice, /for/karaoke, /for/transcription, /for/meditation — unique copy per page, cross-linked, in sitemap |
 
 ## Pending (from user requests)
 
@@ -46,5 +47,5 @@
 | Feature | Notes |
 |---------|-------|
 | Drag-to-reorder playlists in sidebar | UI only, state exists |
-| pSEO pages | More loop/[slug] pages for SEO |
+| pSEO pages | More loop/[slug] pages for SEO; more /for/[use-case] pages |
 | Fix A/B loop start time edge case | Minor bug |
